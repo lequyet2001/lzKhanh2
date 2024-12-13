@@ -1,7 +1,6 @@
 const Course = require('../models/course');
 const Category = require('../models/category');
 const Section = require('../models/sections');
-const Lesson = require('../models/lessons');
 
 exports.createCourse = async (req, res) => {
     try {
@@ -67,101 +66,6 @@ exports.deleteCourse = async (req, res) => {
     }
 };
 
-exports.getCategories = async (req, res) => {
-    try {
-        const categories = await Category.find();
-        res.status(200).json(categories);
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-};
 
-exports.deleteCategory = async (req, res) => {
-    try {
-        const category = await Category.findOneAndDelete({category_id:req.body.category_id});
-        if (!category) {
-            return res.status(404).json({ message: 'Category not found' });
-        }
-        res.status(200).json({ message: 'Category deleted successfully' });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-}
 
-exports.updateCategory = async (req, res) => {
-    try {
-        const category = await Category.findOneAndUpdate({category_id:req.body.category_id},{ $set: req.body }, { new: true });
-        if (!category) {
-            return res.status(404).json({ message: 'Category not found' });
-        }
-        res.status(200).json({ message: 'Category updated successfully', category });
-    }catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-}
 
-exports.createCategory = async (req, res) => {
-    try {
-        const category = new Category(req.body);
-        await category.save();
-        res.status(201).json({ message: 'Category created successfully', category });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-};
-
-exports.createSections = async (req, res) => {
-    try {
-        const section = new Section(req.body);
-        await section.save();
-        res.status(201).json({ message: 'Section created successfully', section });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-};
-
-exports.getSections = async (req, res) => {
-    try {
-        const sections = await Section.find();
-        res.status(200).json(sections);
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-};
-
-exports.getSectionById = async (req, res) => {
-    try {
-        const section = await Section.findOne({section_id:req.body.section_id});
-        if (!section) {
-            return res.status(404).json({ message: 'Section not found' });
-        }
-        const lessons = await Lesson.find({ section_id: section.section_id });
-        res.status(200).json({ section, lessons });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-};
-
-exports.deleteSection = async (req, res) => {
-    try {
-        const section = await Section.findByIdAndDelete(req.body.sectionId);
-        if (!section) {
-            return res.status(404).json({ message: 'Section not found' });
-        }
-        res.status(200).json({ message: 'Section deleted successfully' });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-};
-
-exports.updateSection = async (req, res) => {
-    try {
-        const section = await Section.findByIdAndUpdate(req.body.sectionId, req.body, { new: true });
-        if (!section) {
-            return res.status(404).json({ message: 'Section not found' });
-        }
-        res.status(200).json({ message: 'Section updated successfully', section });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-};

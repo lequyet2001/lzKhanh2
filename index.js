@@ -25,7 +25,8 @@ app.use((err, req, res, next) => {
     next();
 });
 // Connect to MongoDB
-mongoose.connect(uri).then(() => {
+mongoose.connect(uri).then((e) => {
+  console.log(e.connection.name);
   console.log('Connected to MongoDB');
 }).catch((err) => {
   console.error('Error connecting to MongoDB', err);

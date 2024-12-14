@@ -5,6 +5,7 @@ const { getCategories, createCategory, deleteCategory, updateCategory } = requir
 
 
 router.post('/getCategories', getCategories);
+router.get('/getCategories', getCategories);
 router.post('/createCategory',checkToken,checkAdmin, createCategory);
 router.post('/deleteCategory',checkToken,checkAdmin, deleteCategory);
 router.post('/updateCategory',checkToken,checkAdmin, updateCategory);

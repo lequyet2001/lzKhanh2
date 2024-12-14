@@ -1,7 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const authController = require('../controllers/authController');
-const { checkToken, checkResetToken } = require('../middleware/checkToken');
 
 // List all routes
 router.get('/', (req, res) => {
@@ -95,7 +93,5 @@ router.get('/', (req, res) => {
     res.status(200).json(abouts);
 });
 
-router.post('/api/auth/forgot-password', authController.forgotPassword);
-router.post('/api/auth/reset-password', checkResetToken, authController.resetPassword);
 
 module.exports = router;

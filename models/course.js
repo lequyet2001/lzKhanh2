@@ -84,6 +84,10 @@ const courseSchema = new mongoose.Schema({
     updated_at: {
         type: Date,
         default: Date.now
+    },
+    cert:{
+        type: String,
+        required: false
     }
 });
 

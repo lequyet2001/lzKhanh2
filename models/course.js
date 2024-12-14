@@ -23,7 +23,7 @@ const courseSchema = new mongoose.Schema({
     },
     image: {
         type: String,
-        required: true
+        required: false
     },
     hour: {
         type: String,
@@ -90,7 +90,6 @@ const courseSchema = new mongoose.Schema({
         required: false
     }
 });
-
 
 
 module.exports = mongoose.model('Course', courseSchema);

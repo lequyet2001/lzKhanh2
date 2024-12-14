@@ -12,6 +12,11 @@ const userSchema = new mongoose.Schema({
     required: false,
     default: null
   },
+  coin:{
+    type: String,
+    required: false,
+    default:'100'
+  },
   dob: {
     type: Date,
     required: false,

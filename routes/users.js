@@ -1,9 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const userController = require('../controllers/userController');
+const {detailUser,buyCourse} = require('../controllers/userController');
 
 
-router.get('/', userController.detailUser);
+router.get('/', detailUser);
+
+
+router.post('/buyCourse', buyCourse);
+
 
 
 

@@ -5,7 +5,7 @@ const Section = require('../models/sections');
 exports.createCourse = async (req, res) => {
     try {
         const user_id = req.user.user_id;
-        const { title, author, image, hour, lecture, level,name, rating, coursePrice, originalPrice, description, category,  } = req.body;
+        const { title, author, image, hour, lecture, level,name, rating, coursePrice, originalPrice, description, category  } = req.body;
         if (!user_id) {
             return res.status(400).json({ message: 'user_id is required' });
         }

@@ -6,7 +6,8 @@ const courseSchema = new mongoose.Schema({
         auto: true
     },
     user_id: {
-        type:String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
         required: true
     },
     name: {
@@ -88,8 +89,8 @@ const courseSchema = new mongoose.Schema({
     cert:{
         type: String,
         required: false
-    }
+    },
+    sections: [{ type: mongoose.Schema.ObjectId, ref: 'Section' }] // Fix reference
 });
 
-
-module.exports = mongoose.model('Course', courseSchema);
+module.exports = mongoose.model('Course', courseSchema); // Fix model name

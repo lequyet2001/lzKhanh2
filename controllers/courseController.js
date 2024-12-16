@@ -81,7 +81,7 @@ exports.getAllCourses = async (_, res) => {
             {
                 $lookup: {
                     from: 'sections', // Tham chiếu collection "sections"
-                    localField: 'course_id', // Trường "course_id" trong courses
+                    localField: 'course_id', // Trường "_id" trong courses
                     foreignField: 'course_id', // Trường "course_id" trong sections
                     as: 'sections' // Kết quả ánh xạ vào 'sections'
                 }
@@ -94,10 +94,10 @@ exports.getAllCourses = async (_, res) => {
             },
             {
                 $lookup: {
-                    from: 'lessons', // Tham chiếu collection "lessons"
+                    from: 'lessions', // Tham chiếu collection "lessons"
                     localField: 'sections._id', // Trường "_id" trong sections
                     foreignField: 'section_id', // Trường "section_id" trong lessons
-                    as: 'sections.lessons' // Kết quả ánh xạ vào 'sections.lessons'
+                    as: 'sections.lessions' // Kết quả ánh xạ vào 'sections.lessons'
                 }
             },
 
@@ -109,6 +109,7 @@ exports.getAllCourses = async (_, res) => {
                     title: { $first: '$title' },
                     image: { $first: '$image' },
                     hour: { $first: '$hour' },
+                    author: { $first: '$author' },  
                     discount: { $first: '$discount' },
                     benefits: { $first: '$benefits' },
                     lecture: { $first: '$lecture' },
@@ -133,6 +134,7 @@ exports.getAllCourses = async (_, res) => {
                     title: 1,
                     image: 1,
                     hour: 1,
+                    author: 1,
                     discount: 1,
                     benefits: 1,
                     lecture: 1,
@@ -150,7 +152,8 @@ exports.getAllCourses = async (_, res) => {
                 }
             }
         ]);
-
+        const courses2 = await Course.find().populate('sections');
+        
         res.status(200).json(courses); // Trả về danh sách courses
     } catch (error) {
         console.error('Error fetching courses:', error); // Log lỗi chi tiết

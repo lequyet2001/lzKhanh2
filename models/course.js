@@ -49,6 +49,7 @@ const courseSchema = new mongoose.Schema({
         default:1,
         required: true
     },
+    //sad
     requirements: {
         type: String,
         required: false

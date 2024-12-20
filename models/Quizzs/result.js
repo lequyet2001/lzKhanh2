@@ -1,3 +1,5 @@
+const { default: mongoose } = require("mongoose");
+
 const resultSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },                
     questionSetId: { type: mongoose.Schema.Types.ObjectId, ref: "QuestionSet", required: true }, 

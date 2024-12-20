@@ -1,5 +1,7 @@
+const { default: mongoose } = require("mongoose");
+
 const questionSchema = new mongoose.Schema({
-    questionSetId: { type: mongoose.Schema.Types.ObjectId, ref: "QuestionSet", required: true },
+    course_id: { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: true },
     question: { type: String, required: true },
     options: { type: [String], required: true },
     correctAnswer: { type: Number, required: true },

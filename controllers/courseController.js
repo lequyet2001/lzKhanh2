@@ -3,12 +3,14 @@ const Category = require('../models/category');
 const Section = require('../models/sections');
 const Lession = require('../models/lessons');
 const { default: mongoose } = require('mongoose');
-const { on } = require('form-data');
+const QuestionSet = require('../models/Quizzs/qestionSet');
+
 
 exports.createCourse = async (req, res) => {
     try {
         const user_id = req.user.user_id;
-
+        const { quizs } = req.body;
+        console.log({ quizs });
         const {
             name, title, author, image, hour, discount, benefits, lecture, level, requirements, rating, coursePrice, originalPrice, description, category, enroll, cert
         } = req.body;
@@ -27,25 +29,38 @@ exports.createCourse = async (req, res) => {
             course_id: id_course, user_id, name, title, author, image, hour, discount, benefits, lecture, level, requirements, rating, coursePrice, originalPrice, description, category, enroll, cert
         });
         await course.save();
-
-        await Promise.all(sectionsArray.map(async (section) => {
-            const id = new mongoose.Types.ObjectId();
-            const newSection = new Section({
-                _id: id,
-                course_id: id_course,
-                title: section.title,
-            });
-            await newSection.save();
-
-            await Promise.all(section.lessons && section.lessons.map(async (e) => {
-                const newLesson = new Lession({
-                    section_id: id,
-                    title: e.title,
-                    video_url: e.video_url
+        await Promise.all([
+            ...sectionsArray.map(async (section) => {
+                const id = new mongoose.Types.ObjectId();
+                const newSection = new Section({
+                    _id: id,
+                    course_id: id_course,
+                    title: section.title,
                 });
-                await newLesson.save();
-            }));
-        }));
+                await newSection.save();
+
+                await Promise.all(section.lessons && section.lessons.map(async (e) => {
+                    const newLesson = new Lession({
+                        section_id: id,
+                        title: e.title,
+                        video_url: e.video_url
+                    });
+                    await newLesson.save();
+                }));
+            }),
+            ...quizs.map(async (e) => {
+                const newQuestionSet = new QuestionSet({
+                     courseId: id_course,
+                     name: e.name,
+                     easeQuestion: e.easeQuestion,
+                     mediumQuestion: e.mediumQuestion,
+                     hardQuestion: e.hardQuestion,
+                     duration: e.duration
+                });
+                console.log({ newQuestionSet });
+                   await newQuestionSet.save();
+             })
+        ]);
 
         res.status(200).json({ message: 'Course created successfully', course });
     } catch (error) {
@@ -278,18 +293,70 @@ exports.getCourseById = async (req, res) => {
     }
 };
 
+
 exports.updateCourse = async (req, res) => {
     try {
-        const course = await Course.findOneAndUpdate({ course_id: req.body.course_id }, { $set: req.body }, { new: true });
-        console.log('req.body:', req.body);
+        const { course_id } = req.body;
+        if (!mongoose.Types.ObjectId.isValid(course_id)) {
+            return res.status(400).json({ message: 'Invalid course ID' });
+        }
+
+        const {
+            name, title, author, image, hour, discount, benefits, lecture, level, requirements, rating, coursePrice, originalPrice, description, category, enroll, cert, sections, quizs
+        } = req.body;
+
+        const sectionsArray = Array.isArray(sections) ? sections : [];
+        const quizsArray = Array.isArray(quizs) ? quizs : [];
+
+        const course = await Course.findOneAndUpdate(
+            { course_id: mongoose.Types.ObjectId(course_id) },
+            { $set: { name, title, author, image, hour, discount, benefits, lecture, level, requirements, rating, coursePrice, originalPrice, description, category, enroll, cert } },
+            { new: true }
+        );
+
         if (!course) {
             return res.status(404).json({ message: 'Course not found' });
         }
+
+        await Promise.all([
+            ...sectionsArray.map(async (section) => {
+                const id = new mongoose.Types.ObjectId();
+                const newSection = new Section({
+                    _id: id,
+                    course_id: course_id,
+                    title: section.title,
+                });
+                await newSection.save();
+
+                await Promise.all(section.lessons && section.lessons.map(async (e) => {
+                    const newLesson = new Lession({
+                        section_id: id,
+                        title: e.title,
+                        video_url: e.video_url
+                    });
+                    await newLesson.save();
+                }));
+            }),
+            ...quizsArray.map(async (e) => {
+                const newQuestionSet = new QuestionSet({
+                    courseId: course_id,
+                    name: e.name,
+                    easeQuestion: e.easeQuestion,
+                    mediumQuestion: e.mediumQuestion,
+                    hardQuestion: e.hardQuestion,
+                    duration: e.duration
+                });
+                await newQuestionSet.save();
+            })
+        ]);
+
         res.status(200).json({ message: 'Course updated successfully', course });
     } catch (error) {
+        console.error('Error updating course:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
 
 exports.deleteCourse = async (req, res) => {
     try {
@@ -319,6 +386,9 @@ exports.deleteCourse = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
+
+
 
 
 

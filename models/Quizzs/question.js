@@ -1,7 +1,7 @@
 const { default: mongoose } = require("mongoose");
 
 const questionSchema = new mongoose.Schema({
-    course_id: { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: true },
+    course_id: { type: mongoose.Schema.Types.ObjectId, ref: "Courses", required: true },
     question: { type: String, required: true },
     
     options: { type: [{
@@ -13,3 +13,4 @@ const questionSchema = new mongoose.Schema({
 });
   
 module.exports = mongoose.model("Question", questionSchema);
+

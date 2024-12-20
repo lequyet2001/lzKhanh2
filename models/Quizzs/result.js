@@ -1,13 +1,13 @@
 const { default: mongoose } = require("mongoose");
 
 const resultSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },                
+  user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },                
     questionSetId: { type: mongoose.Schema.Types.ObjectId, ref: "QuestionSet", required: true }, 
     courseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: true },           
     answers: [
       {
         questionId: { type: mongoose.Schema.Types.ObjectId, ref: "Question", required: true },   
-        selectedOption: { type: Number, required: true },                                       
+        selectedOption: { type: [Number], required: true },                                       
         isCorrect: { type: Boolean, required: true }                                            
       }
     ],

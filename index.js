@@ -14,6 +14,7 @@ const adminRouter = require('./routes/admin');
 const courseRouter = require('./routes/courses');
 const sectionRouter = require('./routes/sections');
 const categoryRouter = require('./routes/categories');
+const studentCourse = require('./routes/student_course');
 app.use(cors());
 app.use(express.json()); // Middleware to parse JSON bodies
 
@@ -38,7 +39,7 @@ app.use('/api/admin', checkToken.checkToken,checkToken.checkAdmin, adminRouter);
 app.use('/api/courses', courseRouter);
 app.use('/api/sections',sectionRouter );
 app.use('/api/categories', categoryRouter);
-
+app.use('/api/student_course', studentCourse);
 
 app.use('/', defaultRouter);
 

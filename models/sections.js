@@ -6,4 +6,5 @@ const sectionSchema = new mongoose.Schema({
     lession: [{ type: mongoose.Schema.ObjectId, ref:'Lession' }]
 }, { timestamps: true });
 
-module.exports = mongoose.model('Section', sectionSchema);
+const Section = mongoose.model('Section', sectionSchema);
+module.exports = Section;

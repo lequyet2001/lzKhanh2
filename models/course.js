@@ -98,4 +98,5 @@ const courseSchema = new mongoose.Schema({
     sections: [{ type: mongoose.Schema.ObjectId, ref: 'Section' }] // Fix reference
 });
 
-module.exports = mongoose.model('Course', courseSchema); // Fix model name
+const Course = mongoose.model('Course', courseSchema);
+module.exports = Course;

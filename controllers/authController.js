@@ -20,6 +20,7 @@ exports.register = async (req, res) => {
         if(!password) {
             return res.status(400).json({ message: 'Password is required' });
         }
+        const codeuser = crypto.randomBytes(4).toString('hex');
         // Create new user
         user = new User({
             full_name,
@@ -28,7 +29,8 @@ exports.register = async (req, res) => {
             password: await bcrypt.hash(password, 10),
             avatar_url,
             status,
-            role
+            role,
+            code: codeuser
         });
 
         await user.save();

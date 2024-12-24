@@ -5,5 +5,5 @@ const lessionSchema = new mongoose.Schema({
     title: { type: String, required: false },
     video_url: { type: String, required: false },
 }, { timestamps: true });
-
-module.exports = mongoose.model('Lession', lessionSchema);
+const Lesson = mongoose.model('Lession', lessionSchema);
+module.exports = Lesson;

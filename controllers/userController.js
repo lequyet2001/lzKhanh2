@@ -4,7 +4,7 @@ const SC = require('../models/student_course');
 
 exports.getAllUsers = async (req, res) => {
     try {
-        const users = await User.find();
+        const users = await User.find({},{user_id:1,full_name:1,role:1});
         res.status(200).json(users);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -70,25 +70,3 @@ exports.detailUser = async (req, res) => {
     }
 }
 
-exports.buyCourse = async (req, res) => {
-    try {
-        const { course_id } = req.body;
-        const user = req.user;
-        const course = await Course.findOne({ course_id });
-        if (!course) {
-            return res.status(404).json({ message: 'Course not found' });
-        }
-        const student_course = new SC({
-            course_id: course.course_id,
-            user_id: user.user_id,
-        });
-        await student_course.save();
-        res.status(200).json({ message: 'Course purchased successfully' });
-
-
-        
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-        
-    }
-}

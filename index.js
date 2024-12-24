@@ -17,7 +17,8 @@ const categoryRouter = require('./routes/categories');
 const studentCourse = require('./routes/student_course');
 app.use(cors());
 app.use(express.json()); // Middleware to parse JSON bodies
-
+const path = require('path');
+app.use(express.static(path.join(__dirname, 'public')));
 // Error handling middleware for JSON parsing errors
 app.use((err, req, res, next) => {
     if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {

@@ -5,12 +5,12 @@ const Lesson = require('../models/lessons');
 const { default: mongoose } = require('mongoose');
 const QuestionSet = require('../models/Quizzs/qestionSet');
 const Question = require('../models/Quizzs/question');
-
+const StudentCourse = require('../models/student_course');
 
 exports.getNameAndIdCourse = async (_, res) => {
     try {
 
-        const courses = await Course.find({},{course_id:1,name:1}).lean();
+        const courses = await Course.find({}, { course_id: 1, name: 1 }).lean();
         courses.forEach(course => {
             course.value = course.course_id;
             course.label = course.name;
@@ -18,7 +18,7 @@ exports.getNameAndIdCourse = async (_, res) => {
             delete course.name;
             delete course._id;
         });
-        courses.unshift({value: '', label: 'Tất cả'});
+        courses.unshift({ value: '', label: 'Tất cả' });
         res.status(200).json(courses);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -67,7 +67,7 @@ exports.createCourse = async (req, res) => {
                 }));
             }),
             ...quizs.map(async (e) => {
-                if (e.name && e.easeQuestion && e.mediumQuestion &&  e.hardQuestion && e.duration) {
+                if (e.name && e.easeQuestion && e.mediumQuestion && e.hardQuestion && e.duration) {
                     const newQuestionSet = new QuestionSet({
                         course_id: id_course,
                         name: e.name,
@@ -79,7 +79,7 @@ exports.createCourse = async (req, res) => {
                     console.log({ newQuestionSet });
                     await newQuestionSet.save();
                 }
-             })
+            })
         ]);
 
         res.status(200).json({ message: 'Course created successfully', course });
@@ -210,8 +210,71 @@ exports.getAllCourses = async (_, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
-exports.getCourseById = async (req, res) => {
+
+exports.getAllCourses2 = async (req, res) => {
     try {
+        const user_id = req.user.user_id;
+        console.log({ user_id });
+
+        const StudentCourses = await StudentCourse.aggregate([
+            {
+                $match: { user_id: new mongoose.Types.ObjectId(user_id) } // Nếu user_id là ObjectId, giữ nguyên, nếu không cần sửa trong DB
+            },
+            {
+                $lookup: {
+                    from: 'courses',
+                    localField: 'course_id',
+                    foreignField: 'course_id',
+                    as: 'course'
+                }
+            },
+            {
+                $unwind: '$course' // Giải nén mảng course
+            },
+            {
+                $project: {
+                    progress: 1,
+                    course_id: '$course.course_id',
+                    name: '$course.name',
+                    title: '$course.title',
+                    image: '$course.image',
+                    author: '$course.author'
+                }
+            },
+            {
+                $group: {
+                    _id: '$course_id', // Nhóm theo course_id
+                    name: { $first: '$name' },
+                    title: { $first: '$title' },
+                    image: { $first: '$image' },
+                    author: { $first: '$author' },
+                    progress: { $first: '$progress' }
+                }
+            },
+            {
+                $project: {
+                    course_id: '$_id', // Đổi _id thành course_id trong kết quả cuối
+                    _id: 0,
+                    name: 1,
+                    title: 1,
+                    image: 1,
+                    author: 1,
+                    progress: 1
+                }
+            }
+        ]);
+
+        res.status(200).json(StudentCourses); // Trả về danh sách courses
+    } catch (error) {
+        console.error('Error fetching courses:', error); // Log lỗi chi tiết
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+
+exports.getCourseById = async (req, res) => {
+    try { 
+        const user_id = req.user.user_id;
         const { course_id } = req.body; // Use req.params to get course_id from URL parameters
         if (!mongoose.Types.ObjectId.isValid(course_id)) {
             return res.status(400).json({ message: 'Invalid course ID' });
@@ -270,6 +333,7 @@ exports.getCourseById = async (req, res) => {
                     as: 'questionsets'
                 }
             },
+            
             {
                 $unwind: {
                     path: '$questionsets',
@@ -329,6 +393,17 @@ exports.getCourseById = async (req, res) => {
                 }
             }
         ]);
+        const studentCourse = await StudentCourse.findOne({ course_id, user_id });
+        if (studentCourse) {
+            course[0].progress = studentCourse.progress;
+            course[0].sections.forEach(section => {
+                section.lessions.forEach(lesson => {
+                    lesson.isCompleted = studentCourse.list_completed.includes(lesson._id.toString());
+                });
+            });
+        }
+
+
         if (!course || course.length === 0) {
             return res.status(404).json({ message: 'Course not found' });
         }
@@ -338,6 +413,33 @@ exports.getCourseById = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
+
+
+exports.getCourse = async (req, res) => {
+    try {
+        const course_id = req.body.course_id;
+        if (!course_id) {
+
+            const courses = await Course.find({});
+            if (!courses) {
+                return res.status(404).json({ message: 'Bạn chưa có khóa học nào' });
+            }
+            res.status(200).json(courses);
+        }
+
+        const course = await Course.findOne({ course_id });
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+        res.status(200).json(course);
+
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+
+}
+
 exports.getCourseByIdAtHomePage = async (req, res) => {
     try {
         const { course_id } = req.body; // Use req.params to get course_id from URL parameters
@@ -348,7 +450,7 @@ exports.getCourseByIdAtHomePage = async (req, res) => {
     } catch (error) {
         console.error('Error fetching course:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
-    } 
+    }
 
     const course = await Course.aggregate([
         {
@@ -567,13 +669,13 @@ exports.createQuestion = async (req, res) => {
         if (!course) {
             return res.status(404).json({ message: 'Course not found' });
         }
-        const questionExists= await Question.findOne({ question });
+        const questionExists = await Question.findOne({ question });
         if (questionExists) {
             return res.status(400).json({ message: 'Question already exists' });
         }
         const newQuestion = new Question({ course_id, question, options, difficulty });
         await newQuestion.save();
-        res.status(200).json({ message: 'Question created successfully'});
+        res.status(200).json({ message: 'Question created successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -589,7 +691,7 @@ exports.updateQuestion = async (req, res) => {
             return res.status(400).json({ message: 'question, options, difficulty are required' });
         }
         const updatedQuestion = await Question.findOneAndUpdate(
-            { _id:question_id },
+            { _id: question_id },
             { $set: { question, options, difficulty } },
             { new: true }
         );
@@ -597,12 +699,12 @@ exports.updateQuestion = async (req, res) => {
             return res.status(404).json({ message: 'Question not found' });
         }
         res.status(200).json({ message: 'Question updated successfully', updatedQuestion });
-        
+
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 }
-exports.deleteQuestion = async (req, res) => { 
+exports.deleteQuestion = async (req, res) => {
     try {
         const { question_id } = req.body;
         if (!mongoose.Types.ObjectId.isValid(question_id)) {
@@ -621,7 +723,7 @@ exports.deleteQuestion = async (req, res) => {
 exports.createQuestions = async (req, res) => {
     try {
         const { course_id, list_question } = req.body;
- 
+
         if (!mongoose.Types.ObjectId.isValid(course_id)) {
             return res.status(400).json({ message: 'Invalid course ID' });
         }
@@ -645,7 +747,7 @@ exports.createQuestions = async (req, res) => {
 
 
     } catch (error) {
-        
+
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 }
@@ -714,7 +816,7 @@ exports.updateTest = async (req, res) => {
 }
 exports.deleteTest = async (req, res) => {
     try {
-        
+
         const { test_id } = req.body;
         if (!mongoose.Types.ObjectId.isValid(test_id)) {
             return res.status(400).json({ message: 'Invalid test ID' });
@@ -752,24 +854,24 @@ exports.getTestById = async (req, res) => {
 }
 exports.generateQuestionsSet = async (req, res) => {
     try {
-        const {questionSet_id,course_id} = req.body;
+        const { questionSet_id, course_id } = req.body;
         const questionSet = await QuestionSet.findOne({ _id: questionSet_id, course_id });
         if (!questionSet) {
             return res.status(404).json({ message: 'Question set not found' });
         }
-        const {  name, easeQuestion, mediumQuestion, hardQuestion, duration } = questionSet;
+        const { name, easeQuestion, mediumQuestion, hardQuestion, duration } = questionSet;
 
-        const [ easeQuestions, mediumQuestions, hardQuestions ] = await Promise.all([
+        const [easeQuestions, mediumQuestions, hardQuestions] = await Promise.all([
             Question.aggregate([{ $match: { course_id, level: 'easy' } }, { $sample: { size: easeQuestion } }]),
             Question.aggregate([{ $match: { course_id, level: 'medium' } }, { $sample: { size: mediumQuestion } }]),
             Question.aggregate([{ $match: { course_id, level: 'hard' } }, { $sample: { size: hardQuestion } }])
         ]);
 
-        if(easeQuestions.length < easeQuestion || mediumQuestions.length < mediumQuestion || hardQuestions.length < hardQuestion) {
+        if (easeQuestions.length < easeQuestion || mediumQuestions.length < mediumQuestion || hardQuestions.length < hardQuestion) {
             return res.status(404).json({ message: 'Not enough questions for the question set' });
         }
 
-        const questions = [ ...easeQuestions, ...mediumQuestions, ...hardQuestions ];
+        const questions = [...easeQuestions, ...mediumQuestions, ...hardQuestions];
 
         res.status(200).json({ questions, duration });
     } catch (error) {

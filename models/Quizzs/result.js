@@ -6,14 +6,12 @@ const resultSchema = new mongoose.Schema({
   course_id: { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: true },
   answers: [
     {
-      question_id: { type: mongoose.Schema.Types.ObjectId, ref: "Question", required: true },
-      selectedOption: { type: [Number], required: true },
+      questionId: { type: mongoose.Schema.Types.ObjectId, ref: "Question", required: true },
+      selectedAnswer: { type: [String], required: false },
       isCorrect: { type: Boolean, required: true }
     }
   ],
-  totalQuestions: { type: Number, required: true },
-  correctAnswers: { type: Number, required: true },
-  score: { type: Number, required: true },
+  result: { type: Number, required: true },
   completedAt: { type: Date, default: Date.now },
 }, {
   timestamps: true

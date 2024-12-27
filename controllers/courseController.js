@@ -898,7 +898,7 @@ exports.generateQuestionsSet = async (req, res) => {
 
         const questions = [...easeQuestions, ...mediumQuestions, ...hardQuestions];
 
-        res.status(200).json({ questions, duration,name:questionSet.name });
+        res.status(200).json({ questions, duration,name:questionSet.name ,questionSet_id});
     } catch (error) {
         console.error('Error creating question set:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -908,29 +908,48 @@ exports.generateQuestionsSet = async (req, res) => {
 
 exports.result = async (req, res) => {
     try {
-        const { course_id, questions, score, total, duration } = req.body;
-        console.log(req.body);
+        const { questionSetId, course_id, questions, result } = req.body;
+        const user_id = req.user.user_id;
+        if (!mongoose.Types.ObjectId.isValid(questionSetId)) {
+            return res.status(400).json({ message: 'Invalid question set ID' });
+        }
+        if (!course_id) {
+            return res.status(400).json({ message: 'course_id is required' });
+        }
+        // if (!questions || !result) {
+        //     return res.status(400).json({ message: 'questions, result are required' });
+        // }
+
+        // const questionSet = await QuestionSet.findOne({ _id: questionSetId, course_id });
+        // if (!questionSet) {
+        //     return res.status(404).json({ message: 'Question set not found' });
+        // }
+       
+        const newResult = new Result({ user_id, questionSet_id:questionSetId, course_id:new mongoose.Types.ObjectId(course_id) , answers:questions, result });
+        await newResult.save();
         
-        // if (!mongoose.Types.ObjectId.isValid(course_id)) {
-        //     return res.status(400).json({ message: 'Invalid course ID' });
-        // }
-        // if (!mongoose.Types.ObjectId.isValid(user_id)) {
-        //     return res.status(400).json({ message: 'Invalid user ID' });
-        // }
-        // if (!questions || !score || !total || !duration) {
-        //     return res.status(400).json({ message: 'questions, score, total, duration are required' });
-        // }
-        // const course = await Course.findOne({ course_id });
-        // if (!course) {
-        //     return res.status(404).json({ message: 'Course not found' });
-        // }
-        // const studentCourse = await StudentCourse.findOne({ course_id, user_id });
-        // if (!studentCourse) {
-        //     return res.status(404).json({ message: 'Student course not found' });
-        // }
-        // const newResult = new Result({ course_id, user_id, questions, score, total, duration });
-        // await newResult.save();
+
+
+
         res.status(200).json({ message: 'Result saved successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+}
+
+exports.getResults = async (req, res) => {
+    try {
+        const { course_id,questionSet_id } = req.body;
+        console.log({ course_id,questionSet_id });
+        if (!course_id) {
+            return res.status(400).json({ message: 'course_id is required' });
+        }
+        if (!questionSet_id) {
+            return res.status(400).json({ message: 'questionSet_id is required' });
+        }
+        const user_id = req.user.user_id;
+        const results = await Result.find({ user_id, course_id, questionSet_id });  
+        res.status(200).json(results);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }

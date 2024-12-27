@@ -12,5 +12,5 @@ const questionSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
   
-module.exports = mongoose.model("Question", questionSchema);
-
+const Question = mongoose.model("Question", questionSchema);
+module.exports = Question;

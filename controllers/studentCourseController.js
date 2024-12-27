@@ -125,12 +125,21 @@ exports.listStudentCourse = async (req, res) => {
         if (!course_id) {
             // Trường hợp không có course_id, lấy toàn bộ dữ liệu
             pipeline = [
+               
                 {
                     $lookup: {
                         from: 'users', // Tên collection User trong MongoDB
                         localField: 'user_id',
                         foreignField: 'user_id',
                         as: 'user'
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'courses', // Tên collection Course trong MongoDB
+                        localField: 'course_id',
+                        foreignField: 'course_id',
+                        as: 'course'
                     }
                 },
                 {
@@ -142,26 +151,20 @@ exports.listStudentCourse = async (req, res) => {
                         'user.user_id': 1,
                         'user.full_name': 1,
                         progress: 1, // Lấy trường progress từ bảng student_course
-                        joinAt: '$createdAt' // Thêm thời gian gia nhập
-                    }
-                },
-                {
-                    $group: {
-                        _id: '$user.user_id', // Group theo user_id để tránh trùng lặp
-                        user: { $first: '$user' },
-                        progress: { $first: '$progress' }, // Lấy progress đầu tiên trong nhóm
-                        joinAt: { $first: '$joinAt' },
-                        id: { $first: '$_id' }
+                        joinAt: '$createdAt' ,// Thêm thời gian gia nhập
+                        'course.name':1
+                        
                     }
                 },
                 {
                     $project: {
+                        'course.name': 1,
                         'user.code': 1,
                         'user.user_id': 1,
                         'user.full_name': 1,
                         progress: 1,
                         joinAt: 1,
-                        id: 1
+                        id: '$_id'
                     }
                 }
             ];
@@ -180,10 +183,19 @@ exports.listStudentCourse = async (req, res) => {
                     }
                 },
                 {
+                    $lookup: {
+                        from: 'courses',
+                        localField: 'course_id',
+                        foreignField: 'course_id',
+                        as: 'course'
+                    }
+                },
+                {
                     $unwind: '$user' // Giải nén mảng user
                 },
                 {
                     $project: {
+                        'course.name': 1,
                         'user.code': 1,
                         'user.user_id': 1,
                         'user.full_name': 1,
@@ -197,7 +209,8 @@ exports.listStudentCourse = async (req, res) => {
                         user: { $first: '$user' },
                         progress: { $first: '$progress' }, // Lấy progress đầu tiên trong nhóm
                         joinAt: { $first: '$joinAt' },
-                        id: { $first: '$_id'}
+                        id: { $first: '$_id'},
+                        course: { $first: '$course' }
                     }
                 },
                 {
@@ -205,13 +218,16 @@ exports.listStudentCourse = async (req, res) => {
                         'user.code': 1,
                         'user.user_id': 1,
                         'user.full_name': 1,
+                        "user.code":1,
                         progress: 1,
                         joinAt: 1,
-                        id: 1
+                        id: 1,
+                        'course.name':1
                     }
                 }
             ];
         }
+
 
         // Thực hiện pipeline
         const listuser = await StudentCourse.aggregate(pipeline);

@@ -15,6 +15,7 @@ const courseRouter = require('./routes/courses');
 const sectionRouter = require('./routes/sections');
 const categoryRouter = require('./routes/categories');
 const studentCourse = require('./routes/student_course');
+const chat = require('./routes/chat');
 app.use(cors());
 app.use(express.json()); // Middleware to parse JSON bodies
 const path = require('path');
@@ -41,6 +42,7 @@ app.use('/api/courses', courseRouter);
 app.use('/api/sections',sectionRouter );
 app.use('/api/categories', categoryRouter);
 app.use('/api/student_course', studentCourse);
+app.use('/api/chat', chat);
 
 app.use('/', defaultRouter);
 

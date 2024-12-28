@@ -11,12 +11,12 @@ const resultSchema = new mongoose.Schema({
       isCorrect: { type: Boolean, required: true }
     }
   ],
+  count: { type: Number, required: false },
   result: { type: Number, required: true },
-  completedAt: { type: Date, default: Date.now },
+  timeTaken: { type: Number, required: true },
 }, {
   timestamps: true
-}
-);
+});
 
 const Result = mongoose.model("Result", resultSchema);
 module.exports = Result;

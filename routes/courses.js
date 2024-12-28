@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createCourse, getAllCourses, getCourseById,getCourse, updateCourse, deleteCourse, createQuestion, getQuestions, getNameAndIdCourse, createQuestions, updateQuestion, deleteQuestion, getTestById, createTest, updateTest, deleteTest, getAllCourses2, generateQuestionsSet, result, getResults } = require('../controllers/courseController');
+const { createCourse, getAllCourses, getCourseById,getCourse, updateCourse, deleteCourse, createQuestion, getQuestions, getNameAndIdCourse, createQuestions, updateQuestion, deleteQuestion, getTestById, createTest, updateTest, deleteTest, getAllCourses2, generateQuestionsSet, result, getResults, getResultByIdQuestionSet } = require('../controllers/courseController');
 const {checkToken,checkTeacher} = require('../middleware/checkToken');
 
 router.post('/getCourse',checkToken,checkTeacher,getCourse)
@@ -34,5 +34,6 @@ router.post('/getResults', checkToken, getResults);
 
 
 router.post('/generateQuestionsSet', checkToken, generateQuestionsSet);
+router.post('/getResultByIdQuestionSet', checkToken, getResultByIdQuestionSet);
 
 module.exports = router;

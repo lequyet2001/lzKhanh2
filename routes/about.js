@@ -4,7 +4,8 @@ const router = express.Router();
 // List all routes
 router.get('/', (req, res) => {
     const abouts = [
-        "/api/courses/result"
+        "/api/courses/result",
+        "/api/courses/getResultByIdQuestionSet"
            ];
     res.status(200).json(abouts);
 });

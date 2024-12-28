@@ -939,17 +939,81 @@ exports.result = async (req, res) => {
 
 exports.getResults = async (req, res) => {
     try {
-        const { course_id,questionSet_id } = req.body;
-        console.log({ course_id,questionSet_id });
-        if (!course_id) {
-            return res.status(400).json({ message: 'course_id is required' });
-        }
-        if (!questionSet_id) {
-            return res.status(400).json({ message: 'questionSet_id is required' });
-        }
         const user_id = req.user.user_id;
-        const results = await Result.find({ user_id, course_id, questionSet_id });  
+        const course_id = req.body.course_id;
+        // const results = await Result.find({course_id, user_id, questionSet_id: { $exists: false } });
+        const results = await Result.aggregate([
+            { $match: { course_id, user_id } }, // Lọc theo course_id và user_id
+            { 
+                $group: { 
+                    _id: "$questionSet_id", // Gom nhóm theo questionSet_id
+                    data: { $first: "$$ROOT" } // Lấy tài liệu đầu tiên của nhóm
+                }
+            },
+            { $replaceRoot: { newRoot: "$data" } } // Thay thế gốc bằng tài liệu đã gom nhóm
+        ]);  
+        console.log({results});
         res.status(200).json(results);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+}
+
+
+exports.getResultByIdQuestionSet = async (req, res) => {
+
+    try {
+            const { 
+                course_id,
+                questionSet_id
+            } = req.body;
+            const user_id = req.user.user_id;
+            if (!mongoose.Types.ObjectId.isValid(course_id)) {
+                return res.status(400).json({ message: 'Invalid course ID' });
+            }
+            if (!mongoose.Types.ObjectId.isValid(questionSet_id)) {
+                return res.status(400).json({ message: 'Invalid questionSet ID' });
+            }
+            // const course = await Course.findOne({ course_id });
+            // if (!course) {
+            //     return res.status(404).json({ message: 'Course not found' });
+            // }
+            const questionSet = await QuestionSet.findOne({ _id: questionSet_id, course_id });
+            if (!questionSet) {
+                return res.status(404).json({ message: 'Question set not found' });
+            }
+            const results = await Result.aggregate([
+                {
+                    $match: { user_id: new mongoose.Types.ObjectId(user_id), questionSet_id: new mongoose.Types.ObjectId(questionSet_id) }
+                },
+                {
+                    $lookup: {
+                        from: 'courses',
+                        localField: 'course_id',
+                        foreignField: 'course_id',
+                        as: 'course'
+                    },
+                    $lookup: {
+                        from: 'questionsets',
+                        localField: 'questionSet_id',
+                        foreignField: 'questionSet_id',
+                        as: 'questionSet'
+                    },
+                    $lookup: {
+                        from: 'questions',
+                        localField: 'answers.questionId',
+                        foreignField: '_id',
+                        as: 'questions'
+                    }
+                }
+
+            ])
+            if (!results) {
+                return res.status(404).json({ message: 'Result not found' });
+            }
+            res.status(200).json(results);
+
+
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }

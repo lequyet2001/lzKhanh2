@@ -1,12 +1,11 @@
 const express = require('express');
 const { checkToken, checkTeacher } = require('../middleware/checkToken');
-const { sendMessageFromStudent, getMessageToTeacher, sendMessageFromTeacher, getMessageToStudent } = require('../controllers/chat');
+const { studentSendMessage, replyMessage, getMessages } = require('../controllers/chat');
 const router = express.Router();
 
-router.post('/sendMessageFromStudent', checkToken, sendMessageFromStudent);
-router.post('/sendMessageFromTeacher', checkToken, checkTeacher, sendMessageFromTeacher);
+router.post('/student/send', checkToken, studentSendMessage);
+router.post('/student/reply', checkToken, replyMessage);
+router.post('/teacher/reply', checkToken, checkTeacher, replyMessage);
+router.post('/getMessages', checkToken, getMessages);
 
-
-router.post('/getMessageToTeacher', checkToken, checkTeacher, getMessageToTeacher);
-router.post('/getMessageToStudent', checkToken, getMessageToStudent);
 module.exports = router;

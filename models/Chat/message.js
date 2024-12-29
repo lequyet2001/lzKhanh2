@@ -22,12 +22,22 @@ const messageSchema = new Schema({
         type: String,
         required: true
     },
-    
+    replyTo: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Message',
+        default: null
+    },
+    isQuestion: {
+        type: Boolean,
+        default: true,
+        
+    },
     timestamp: {
         type: Date,
         default: Date.now
     }
 });
+
 
 const Message = mongoose.model('Message', messageSchema);
 

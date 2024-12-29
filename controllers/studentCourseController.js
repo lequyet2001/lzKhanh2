@@ -74,6 +74,7 @@ exports.joinCourseWithCode = async (req, res) => {
     }
 }
 
+
 exports.joinCourseWithTeacher = async (req, res) => {
     try {
         const { course_id, query } = req.body;
@@ -82,7 +83,6 @@ exports.joinCourseWithTeacher = async (req, res) => {
                 { email: query },
                 { code: query },
                 { user_id: query }
-                
             ]
         })
         console.log({ course_id, query })
@@ -326,23 +326,6 @@ exports.listUser = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 exports.rechargeAccount = async (req, res) => {

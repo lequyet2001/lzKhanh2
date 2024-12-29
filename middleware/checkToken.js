@@ -15,6 +15,20 @@ const checkToken = (req, res, next) => {
         next();
     });
 };
+const checkToken2 = (req, res, next) => {
+    const authorization = req.headers['authorization'];
+    const token = authorization && authorization.split(' ')[1];
+   
+    jwt.verify(token, process.env.YOUR_JWT_SECRET, (err, decoded) => {
+        if (err) {
+            req.user = null;
+            next();
+        }else{
+            req.user = decoded.user;
+            next();
+        }
+    });
+};
 
 const checkResetToken = (req, res, next) => {
     const { token } = req.body;
@@ -42,4 +56,4 @@ const checkTeacher = (req, res, next) => {
     }
     next();
 };
-module.exports = { checkToken, checkResetToken, checkAdmin ,checkTeacher};
+module.exports = { checkToken, checkResetToken, checkAdmin ,checkTeacher,checkToken2};

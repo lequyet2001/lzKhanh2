@@ -274,8 +274,8 @@ exports.getAllCourses2 = async (req, res) => {
 };
 exports.getCourseById = async (req, res) => {
     try {
-        const user_id = req.user.user_id;
-        const { course_id } = req.body; // Use req.params to get course_id from URL parameters
+        const user_id = req.user?.user_id;
+        const { course_id } = req.body; 
         if (!mongoose.Types.ObjectId.isValid(course_id)) {
             return res.status(400).json({ message: 'Invalid course ID' });
         }
@@ -399,6 +399,7 @@ exports.getCourseById = async (req, res) => {
                 }
             }
         ]);
+
         const studentCourse = await StudentCourse.findOne({ course_id, user_id });
         if (studentCourse) {
             course[0].progress = studentCourse.progress;

@@ -82,6 +82,7 @@ exports.joinCourseWithTeacher = async (req, res) => {
                 { email: query },
                 { code: query },
                 { user_id: query }
+                
             ]
         })
         console.log({ course_id, query })

@@ -106,7 +106,6 @@ exports.getMessages = async (req, res) => {
 
         while (queue.length > 0) {
             const currentMessageId = queue.shift();
-
             const replies = await Message.find({
                 replyTo: currentMessageId,
             })

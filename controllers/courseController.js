@@ -281,13 +281,13 @@ exports.getCourseById = async (req, res) => {
         }
         const course = await Course.aggregate([
             {
-                $match: { course_id: new mongoose.Types.ObjectId(course_id) } // Convert course_id to ObjectId
+                $match: { course_id: new mongoose.Types.ObjectId(course_id) }
             },
             { $limit: 1 },
             {
                 $sort: {
-                    'sections.order_Number': -1,
-                    'sections.lessions.order_Number': -1
+                    'sections.order_Number': 1,
+                    'sections.lessions.order_Number': 1
                 }
             },
             {
@@ -343,7 +343,6 @@ exports.getCourseById = async (req, res) => {
             {
                 $unwind: {
                     path: '$questionsets',
-                    preserveNullAndEmptyArrays: true
                 }
             },
             {
@@ -368,13 +367,13 @@ exports.getCourseById = async (req, res) => {
                     enroll: { $first: '$enroll' },
                     cert: { $first: '$cert' },
                     user_name: { $first: '$user_name' },
-                    sections: { $push: '$sections' },
-                    questionsets: { $push: '$questionsets' }
+                    sections: { $addToSet: '$sections' },
+                    questionsets: { $addToSet: '$questionsets' }
                 }
             },
             {
                 $project: {
-                    _id: 0,
+                    _id: 1,
                     course_id: 1,
                     name: 1,
                     title: 1,
@@ -395,10 +394,12 @@ exports.getCourseById = async (req, res) => {
                     cert: 1,
                     user_name: 1,
                     sections: 1,
-                    questionsets: 1
+                    questionsets: 1,
+                    order_Number: 1
                 }
             }
         ]);
+        console.log(course[0].sections.length);
 
         const studentCourse = await StudentCourse.findOne({ course_id, user_id });
         if (studentCourse) {
@@ -411,6 +412,7 @@ exports.getCourseById = async (req, res) => {
         }
 
         course[0].progress = studentCourse ? studentCourse.progress : 0;
+        console.log(course[0].sections.length);
         if (!course || course.length === 0) {
             return res.status(404).json({ message: 'Course not found' });
         }
@@ -561,6 +563,7 @@ exports.getCourseByIdAtHomePage = async (req, res) => {
 exports.updateCourse = async (req, res) => {
     try {
         const { course_id } = req.body;
+        console.log(req.body)
         if (!mongoose.Types.ObjectId.isValid(course_id)) {
             return res.status(400).json({ message: 'Invalid course ID' });
         }
@@ -586,11 +589,14 @@ exports.updateCourse = async (req, res) => {
         await Promise.all([
             Section.deleteMany({ course_id: course_id }),
             Lesson.deleteMany({ section_id: { $in: sectionsArray.map(section => section._id) } }),
-            QuestionSet.deleteMany({ course_id: course_id })
         ]);
 
         await Promise.all([
             ...sectionsArray.map(async (section, index) => {
+                console.log({ 
+                    section:section.title,
+                    order_Number: index
+                 });
                 const id = new mongoose.Types.ObjectId();
                 const newSection = new Section({
                     _id: id,
@@ -601,6 +607,10 @@ exports.updateCourse = async (req, res) => {
                 await newSection.save();
 
                 section.lessions && await Promise.all(section.lessions.map(async (e, i) => {
+                    console.log({
+                        title: e.title,
+                        order_Number: i
+                    });
                     const newLesson = new Lesson({
                         section_id: id,
                         title: e.title,
@@ -945,93 +955,33 @@ exports.getResults = async (req, res) => {
         const user_id = req.user.user_id;
         const course_id = req.body.course_id;
 
-        const results = await Result.aggregate([
-            {
-                $match: {
-                    course_id: new mongoose.Types.ObjectId(course_id),
-                    user_id: new mongoose.Types.ObjectId(user_id)
-                }
+        // const result = await Result.
+        const results = await Result.find({
+            course_id,
+            user_id
+        }).populate({
+            path: 'questionSet_id',
+            select: {
+                name: 1,
+                _id: 1,
             },
-            {
-                $lookup: {
-                    from: 'questionsets',
-                    localField: 'questionSet_id',
-                    foreignField: '_id',
-                    as: 'questionSet'
-                }
+            model: 'QuestionSet',
+        }).populate({
+            path:"course",
+            select: {
+                name: 1,
+                _id: 1,
             },
-            {
-                $lookup: {
-                    from: 'questions',
-                    localField: 'answers.questionId',
-                    foreignField: '_id',
-                    as: 'questions'
-                }
+            model: 'Course',
+        }).populate({
+            path: 'answers.questionId',
+            select: {
+                question: 1,
+                options: 1,
+                difficulty: 1
             },
-            {
-                $addFields: {
-                    questionSetName: { $arrayElemAt: ['$questionSet.name', 0] } // Get first name from questionSet array
-                }
-            },
-            {
-                $group: {
-                    _id: "$questionSet_id",
-                    result: { $max: '$result' }, // Keep maximum result (or adjust as necessary)
-                    course_id: { $first: '$course_id' },
-                    user_id: { $first: '$user_id' },
-                    questionSetName: { $first: '$questionSetName' },
-                    timeTaken: { $first: '$timeTaken' },
-                    createdAt: { $first: '$createdAt' },
-                    answers: { $push: '$answers' } // Push entire answers array
-                }
-            },
-            {
-                $addFields: {
-                    countCorrected: {
-                        $size: {
-                            $filter: {
-                                input: { $arrayElemAt: ['$answers', 0] }, // Access the first element of the answers array
-                                as: 'answer',
-                                cond: { $eq: ['$$answer.isCorrect', true] }
-                            }
-                        }
-                    },
-                    totalAnswers: { $size: { $arrayElemAt: ['$answers', 0] } }, // Count all answers
-                    countIncorrected: {
-                        $subtract: [
-                            { $size: { $arrayElemAt: ['$answers', 0] } }, // Total number of answers
-                            {
-                                $size: {
-                                    $filter: {
-                                        input: { $arrayElemAt: ['$answers', 0] },
-                                        as: 'answer',
-                                        cond: { $eq: ['$$answer.isCorrect', true] }
-                                    }
-                                }
-                            }
-                        ]
-                    }
-                }
-            },
-            {
-                $sort: { createdAt: 1 }
-            },
-            {
-                $project: {
-                    _id: 0,
-                    questionSet_id: '$_id',
-                    result: 1,
-                    questionSetName: 1,
-                    timeTaken: 1,
-                    createdAt: 1,
-                    countCorrected: 1,
-                    countIncorrected: 1,
-                    totalAnswers: 1,
-                    answers: 1
-                }
-            }
-        ]);
-
+            model: 'Question',
+        }).sort({ createdAt: -1 });
         console.log({ results });
         res.status(200).json(results);
     } catch (error) {
@@ -1109,36 +1059,3 @@ exports.getResultByIdQuestionSet = async (req, res) => {
 
 
 
-const  b = {
-    "key": [
-        [
-            "dung"
-        ],
-        [
-            "asdas"
-        ],
-        [
-            "qweqw"
-        ]
-    ],
-    "value": [
-        "676e84722a6ca24dbcfeb00c",
-        "676fb37699ff2ec6ac7f3cd2",
-        "676fb38399ff2ec6ac7f3ce0"
-    ]
-}
-// convert object to Object 
-
-// {
-//     "676e84722a6ca24dbcfeb00c": "dung",
-// }
-
-const convertObject = (obj) => {
-    const { key, value } = obj;
-    const result = {};
-    for (let i = 0; i < key.length; i++) {
-        result[value[i]] = key[i][0];
-    }
-    return result;
-}
-console.log(convertObject(b))

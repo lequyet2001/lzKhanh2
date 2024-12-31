@@ -366,6 +366,31 @@ exports.updateRechargeStatus = async (req, res) => {
 }
 
 
+exports.listPurchaseHistory = async (req, res) => {
+    try {
+        const {type,status }= req.body
+        const user_id = req.user.user_id;
+
+        const purchase_history = await PurchaseHistory.find({ $or: [{user_id,status},{user_id,type}, { type }, { status }] }).sort({ createdAt: -1 }).populate({
+            path: 'course_id',
+            select: 'name',
+            model: 'Course',
+            localField: 'course_id',
+            foreignField: 'course_id'
+        }).populate({
+            path: 'user_id',
+            select: 'full_name',
+            model: 'User',
+            localField: 'user_id',
+            foreignField: 'user_id'
+        });
+
+        res.status(200).json({ purchase_history });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+
 
 
 

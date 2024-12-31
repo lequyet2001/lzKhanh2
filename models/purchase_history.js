@@ -24,7 +24,7 @@ const PurchaseHistorySchema = new Schema({
     status:{
         type:String,
         required:true,
-        enum:['pending','completed'],
+        enum:['pending','completed','cancelled'],
     },
     type:{
         type:String,

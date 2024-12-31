@@ -955,41 +955,122 @@ exports.getResults = async (req, res) => {
         const user_id = req.user.user_id;
         const course_id = req.body.course_id;
 
-        // const result = await Result.
-        const results = await Result.find({
-            course_id,
-            user_id
-        }).populate({
-            path: 'questionSet_id',
-            select: {
-                name: 1,
-                _id: 1,
+        const results = await Result.aggregate([
+            {
+                $match: {
+                    course_id: new mongoose.Types.ObjectId(course_id),
+                    user_id: new mongoose.Types.ObjectId(user_id)
+                }
             },
-            model: 'QuestionSet',
-        }).populate({
-            path:"course",
-            select: {
-                name: 1,
-                _id: 1,
+            {
+                $lookup: {
+                    from: 'questionsets',
+                    localField: 'questionSet_id',
+                    foreignField: '_id',
+                    as: 'questionSet'
+                }
             },
-            model: 'Course',
-        }).populate({
-            path: 'answers.questionId',
-            select: {
-                question: 1,
-                options: 1,
-                difficulty: 1
+            {
+                $lookup: {
+                    from: 'questions',
+                    localField: 'answers.questionId',
+                    foreignField: '_id',
+                    as: 'questions'
+                }
             },
-            model: 'Question',
-        }).sort({ createdAt: -1 });
+            {
+                $addFields: {
+                    questionSetName: { $arrayElemAt: ['$questionSet.name', 0] }
+                }
+            },
+            {
+                $sort: {
+                    result: -1,
+                    createdAt: -1
+                }
+            },
+            {
+                $group: {
+                    _id: "$questionSet_id",
+                    result: { $first: '$result' },
+                    course_id: { $first: '$course_id' },
+                    user_id: { $first: '$user_id' },
+                    questionSetName: { $first: '$questionSetName' },
+                    timeTaken: { $first: '$timeTaken' },
+                    createdAt: { $first: '$createdAt' },
+                    answers: { $first: '$answers' }
+                }
+            },
+            {
+                $addFields: {
+                    // Chuyển đổi answers từ object sang array nếu cần
+                    answersArray: {
+                        $cond: {
+                            if: { $isArray: '$answers' },
+                            then: '$answers',
+                            else: { $objectToArray: '$answers' }
+                        }
+                    }
+                }
+            },
+            {
+                $addFields: {
+                    // Đếm số câu đúng
+                    countCorrected: {
+                        $size: {
+                            $filter: {
+                                input: '$answersArray',
+                                as: 'answer',
+                                cond: {
+                                    $eq: [
+                                        {
+                                            $cond: [
+                                                { $eq: [{ $type: '$$answer.isCorrect' }, 'missing'] },
+                                                '$$answer.v.isCorrect',
+                                                '$$answer.isCorrect'
+                                            ]
+                                        },
+                                        true
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    // Tổng số câu trả lời
+                    totalAnswers: { $size: '$answersArray' }
+                }
+            },
+            {
+                $addFields: {
+                    // Tính số câu sai
+                    countIncorrected: {
+                        $subtract: ['$totalAnswers', '$countCorrected']
+                    }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    questionSet_id: '$_id',
+                    result: 1,
+                    questionSetName: 1,
+                    timeTaken: 1,
+                    createdAt: 1,
+                    countCorrected: 1,
+                    countIncorrected: 1,
+                    totalAnswers: 1,
+                    answers: 1
+                }
+            }
+        ]);
+
         console.log({ results });
         res.status(200).json(results);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ message: 'Lỗi server', error: error.message });
     }
 };
-
 
 exports.getResultByIdQuestionSet = async (req, res) => {
 

@@ -371,7 +371,7 @@ exports.updateRechargeStatus = async (req, res) => {
             return res.status(400).json({ message: 'Purchase already completed' });
         }
         if (purchase_history.status === 'cancelled') {
-            return res.status(400).json({ message: 'Purchase already completed' });
+            return res.status(400).json({ message: 'Purchase already cancelled' });
         }
         purchase_history.status = status;
         await purchase_history.save();

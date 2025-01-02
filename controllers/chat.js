@@ -38,7 +38,6 @@ exports.replyMessage = async (req, res) => {
     try {
         const {
             id_message,
-            //message
         } = req.body;
         const sender = req.user.user_id;
         const message = await Message.findOne({ _id: id_message });

@@ -95,7 +95,10 @@ const courseSchema = new mongoose.Schema({
         type: String,
         required: false
     },
-    sections: [{ type: mongoose.Schema.ObjectId, ref: 'Section' }] // Fix reference
+    sections: {
+        type: [], 
+        required: false
+    },
 });
 
 const Course = mongoose.model('Course', courseSchema);

@@ -232,7 +232,7 @@ exports.getAllCourses = async (req, res) => {
     }
 };
 
-exports.getAllCoursesAtHome = async (_, res) => {
+exports.getAllCourses3 = async (_, res) => {
     try {
         const courses = await Course.aggregate([
             {
@@ -352,6 +352,153 @@ exports.getAllCoursesAtHome = async (_, res) => {
     }
 };
 
+exports.getAllCoursesAtHome = async (req, res) => {
+    try {
+        const pipeline =  [
+            {
+                $addFields: {
+                    user_id: { $toObjectId: "$user_id" } // Chuyển đổi user_id sang ObjectId
+                }
+            },
+            {
+                $lookup: {
+                    from: 'users', // Tham chiếu collection "users"
+                    localField: 'user_id', // Trường tham chiếu từ "courses"
+                    foreignField: 'user_id', // Trường tham chiếu từ "users"
+                    as: 'user' // Kết quả ánh xạ vào 'user'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'questionsets', // Tham chiếu collection "questionsets"
+                    localField: 'course_id', // Trường tham chiếu từ "courses"
+                    foreignField: 'course_id', // Trường tham chiếu từ "QuestionSet"
+                    as: 'questionsets' // Kết quả ánh xạ vào 'QuestionSet'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$questionsets', // Giải nén mảng 'questionSet'
+                    preserveNullAndEmptyArrays: true // Giữ giá trị null nếu không có questionSet
+                }
+            },
+            {
+                $unwind: {
+                    path: '$user', // Giải nén mảng 'user'
+                    preserveNullAndEmptyArrays: true // Giữ giá trị null nếu không có user
+                }
+            },
+            {
+                $lookup: {
+                    from: 'sections', // Tham chiếu collection "sections"
+                    localField: 'course_id', // Trường "_id" trong courses
+                    foreignField: 'course_id', // Trường "course_id" trong sections
+                    as: 'sections' // Kết quả ánh xạ vào 'sections'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$sections', // Giải nén từng section
+                    preserveNullAndEmptyArrays: true // Giữ giá trị null nếu không có sections
+                }
+            },
+            {
+                $lookup: {
+                    from: 'lessions', // Tham chiếu collection "lessons"
+                    localField: 'sections._id', // Trường "_id" trong sections
+                    foreignField: 'section_id', // Trường "section_id" trong lessons
+                    as: 'sections.lessions' // Kết quả ánh xạ vào 'sections.lessons'
+                }
+            },
+
+            {
+                $group: {
+                    _id: '$_id', // Gom nhóm lại theo từng course
+                    course_id: { $first: '$course_id' },
+                    name: { $first: '$name' },
+                    title: { $first: '$title' },
+                    image: { $first: '$image' },
+                    hour: { $first: '$hour' },
+                    author: { $first: '$author' },
+                    discount: { $first: '$discount' },
+                    benefits: { $first: '$benefits' },
+                    lecture: { $first: '$lecture' },
+                    level: { $first: '$level' },
+                    requirements: { $first: '$requirements' },
+                    rating: { $first: '$rating' },
+                    coursePrice: { $first: '$coursePrice' },
+                    originalPrice: { $first: '$originalPrice' },
+                    description: { $first: '$description' },
+                    category: { $first: '$category' },
+                    enroll: { $first: '$enroll' },
+                    cert: { $first: '$cert' },
+                    user_name: { $first: '$user_name' },
+                    sections: { $push: '$sections' }, // Gộp lại các sections, bao gồm lessons
+                    questionsets: { $push: '$questionsets' },
+                    createdAt: { $first: '$created_at'},
+                    updatedAt: { $first: '$updated_at'}
+                }
+            },
+            {
+                $project: {
+                    _id: 0, // Ẩn _id
+                    course_id: 1,
+                    name: 1,
+                    title: 1,
+                    image: 1,
+                    hour: 1,
+                    author: 1,
+                    discount: 1,
+                    benefits: 1,
+                    lecture: 1,
+                    level: 1,
+                    requirements: 1,
+                    rating: 1,
+                    coursePrice: 1,
+                    originalPrice: 1,
+                    description: 1,
+                    category: 1,
+                    enroll: 1,
+                    cert: 1,
+                    user_name: 1,
+                    sections: 1, // Trả về đầy đủ sections và lessons
+                    questionsets: 1,
+                    createdAt: 1,
+                    updatedAt: 1
+                }
+            }
+        ]
+        const user = req.user;
+
+        const Newest = await Course.aggregate(pipeline).sort({ createdAt: -1 }).limit(10);
+        const Hot = await Course.aggregate(pipeline).sort({ enroll: -1 }).limit(10);
+        let ReComment = await Course.aggregate(pipeline).sort({ createdAt: -1 }).limit(10);
+        if(user?.user_id !== 'undefined' && user?.user_id !== undefined){
+            const StudentCourses = await StudentCourse.find({ user_id: user.user_id })
+                    .populate({
+                        path:'course_id',
+                        select: { _id: 0, course_id: 1, name: 1,category:1 },
+                        model: 'Course',
+                        localField: 'course_id',
+                        foreignField: 'course_id'
+                    }).sort({ createdAt: -1 }).limit(10);
+            pipeline.push({
+                $match: { category: { $in: StudentCourses.map(e => e.course_id.category) } }
+            })
+            ReComment = await Course.aggregate(pipeline).sort({ createdAt: -1 }).limit(10);
+        }
+
+      return    res.status(200).json({
+            Newest,
+            Hot,
+            ReComment
+      }); // Trả về danh sách courses
+    } catch (error) {
+        console.error('Error fetching courses:', error); // Log lỗi chi tiết
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
 exports.getAllCourses2 = async (req, res) => {
     try {
         const user_id = req.user.user_id;
@@ -418,141 +565,41 @@ exports.getCourseById = async (req, res) => {
         if (!mongoose.Types.ObjectId.isValid(course_id)) {
             return res.status(400).json({ message: 'Invalid course ID' });
         }
-        const course = await Course.aggregate([
-            {
-                $match: { course_id }
-            },
-            {
-                $sort: {
-                    'sections.order_Number': 1,
-                    'sections.lessions.order_Number': 1
-                }
-            },
-            {
-                $addFields: {
-                    user_id: { $toObjectId: "$user_id" }
-                }
-            },
-            {
-                $lookup: {
-                    from: 'users',
-                    localField: 'user_id',
-                    foreignField: 'user_id',
-                    as: 'user'
-                }
-            },
-            {
-                $unwind: {
-                    path: '$user',
-                    preserveNullAndEmptyArrays: true
-                }
-            },
-            {
-                $lookup: {
-                    from: 'sections',
-                    localField: 'course_id',
-                    foreignField: 'course_id',
-                    as: 'sections'
-                }
-            },
-            {
-                $unwind: {
-                    path: '$sections',
-                    preserveNullAndEmptyArrays: true
-                }
-            },
-            {
-                $lookup: {
-                    from: 'lessions',
-                    localField: 'sections._id',
-                    foreignField: 'section_id',
-                    as: 'sections.lessions'
-                }
-            },
-            {
-                $lookup: {
-                    from: 'questionsets',
-                    localField: 'course_id',
-                    foreignField: 'course_id',
-                    as: 'questionsets'
-                }
-            },
+        const course = await Course.findOne({ course_id })
+            .populate({
+                path: 'user_id',
+                select: { _id: 0, user_id: 1, name: 1 },
+                model: 'User',
+                localField: 'user_id',
+                foreignField: 'user_id'
+            })
+         course.sections = await Section.find({ course_id: course_id },{
+            _id:1,
+            title:1,
+            order_Number:1
+        }).sort({ order_Number: 1 })
+        
+        course.sections = await Promise.all(course.sections.map(async (section) => {
+            section.lessions = await Lesson.find({ section_id: section._id },{
+                _id:1,
+                title:1,
+                order_Number:1,
+                video_url:1
+            }).sort({ order_Number: 1 })
 
-            {
-                $unwind: {
-                    path: '$questionsets',
-                }
-            },
-            {
-                $group: {
-                    _id: '$_id',
-                    course_id: { $first: '$course_id' },
-                    name: { $first: '$name' },
-                    title: { $first: '$title' },
-                    image: { $first: '$image' },
-                    hour: { $first: '$hour' },
-                    author: { $first: '$author' },
-                    discount: { $first: '$discount' },
-                    benefits: { $first: '$benefits' },
-                    lecture: { $first: '$lecture' },
-                    level: { $first: '$level' },
-                    requirements: { $first: '$requirements' },
-                    rating: { $first: '$rating' },
-                    coursePrice: { $first: '$coursePrice' },
-                    originalPrice: { $first: '$originalPrice' },
-                    description: { $first: '$description' },
-                    category: { $first: '$category' },
-                    enroll: { $first: '$enroll' },
-                    cert: { $first: '$cert' },
-                    user_name: { $first: '$user_name' },
-                    sections: { $addToSet: '$sections' },
-                    questionsets: { $addToSet: '$questionsets' }
-                }
-            },
-            {
-                $project: {
-                    _id: 1,
-                    course_id: 1,
-                    name: 1,
-                    title: 1,
-                    image: 1,
-                    hour: 1,
-                    author: 1,
-                    discount: 1,
-                    benefits: 1,
-                    lecture: 1,
-                    level: 1,
-                    requirements: 1,
-                    rating: 1,
-                    coursePrice: 1,
-                    originalPrice: 1,
-                    description: 1,
-                    category: 1,
-                    enroll: 1,
-                    cert: 1,
-                    user_name: 1,
-                    sections: 1,
-                    questionsets: 1,
-                    order_Number: 1
-                }
+            return section
+        }))
+
+        if(user_id){
+            const studentCourse = await StudentCourse.findOne({ course_id, user_id });
+            console.log({ studentCourse });
+            if (studentCourse) {
+                course._doc.progress = studentCourse.progress;
             }
-        ]);
+        }
 
-        // const studentCourse = await StudentCourse.findOne({ course_id, user_id });
-        // if (studentCourse) {
-        //     course[0].progress = studentCourse.progress;
-        //     course[0].sections.forEach(section => {
-        //         section.lessions.forEach(lesson => {
-        //             lesson.isCompleted = studentCourse.list_completed.includes(lesson._id.toString());
-        //         });
-        //     });
-        // }
 
-        // course[0].progress = studentCourse ? studentCourse.progress : 0;
-        // if (!course || course.length === 0) {
-        //     return res.status(404).json({ message: 'Course not found' });
-        // }
-      return   res.status(200).json(course[0]);
+      return   res.status(200).json(course);
     } catch (error) {
         console.error('Error fetching course:', error);
         res.status(500).json({ message: 'Server error', error: error.message });

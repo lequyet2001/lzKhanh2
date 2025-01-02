@@ -43,7 +43,7 @@ exports.joinCourseWithCoin = async (req, res) => {
 
         const student_course = new StudentCourse({ course_id, user_id });
         await student_course.save();
-        res.status(200).json({ message: 'Course joined successfully' });
+      return    res.status(200).json({ message: 'Course joined successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -68,7 +68,7 @@ exports.joinCourseWithCode = async (req, res) => {
 
         const purchase_history = new PurchaseHistory({ course_id, user_id: user.user_id, totalPrice: 0, status: 'completed', type: 'course' });
         await purchase_history.save();
-        res.status(200).json({ message: 'Course joined successfully' });
+      return    res.status(200).json({ message: 'Course joined successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -109,7 +109,7 @@ exports.joinCourseWithTeacher = async (req, res) => {
 
         const purchase_history = new PurchaseHistory({ course_id, user_id: user.user_id, totalPrice: 0, status: 'completed', type: 'course' });
         await purchase_history.save();
-        res.status(200).json({ message: 'Course joined successfully' });
+      return    res.status(200).json({ message: 'Course joined successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -124,9 +124,8 @@ exports.listStudentCourse = async (req, res) => {
         let pipeline = [];
 
         if (!course_id) {
-            // Trường hợp không có course_id, lấy toàn bộ dữ liệu
             pipeline = [
-               
+                
                 {
                     $lookup: {
                         from: 'users', // Tên collection User trong MongoDB
@@ -153,7 +152,8 @@ exports.listStudentCourse = async (req, res) => {
                         'user.full_name': 1,
                         progress: 1, // Lấy trường progress từ bảng student_course
                         joinAt: '$createdAt' ,// Thêm thời gian gia nhập
-                        'course.name':1
+                        'course.name':1,
+                        teacher: '$course.user_id'
                         
                     }
                 },
@@ -163,6 +163,7 @@ exports.listStudentCourse = async (req, res) => {
                         'user.code': 1,
                         'user.user_id': 1,
                         'user.full_name': 1,
+                        teacher: 1,
                         progress: 1,
                         joinAt: 1,
                         id: '$_id'
@@ -170,7 +171,6 @@ exports.listStudentCourse = async (req, res) => {
                 }
             ];
         } else {
-            // Trường hợp có course_id, chỉ lấy dữ liệu của khóa học đó
             pipeline = [
                 {
                     $match: { course_id: new mongoose.Types.ObjectId(course_id) } // Lọc theo course_id
@@ -229,10 +229,13 @@ exports.listStudentCourse = async (req, res) => {
             ];
         }
 
-
-        // Thực hiện pipeline
         const listuser = await StudentCourse.aggregate(pipeline);
-        return res.status(200).json(listuser);
+
+        const data = listuser.filter((item) => {
+            console.log(`${item.teacher}`)
+            return item.teacher == user_id ;
+        });
+        return res.status(200).json(data);
 
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -305,7 +308,7 @@ exports.updateProgress = async (req, res) => {
         student_course.list_completed.push(lesson_id);
         await student_course.save();
 
-        res.status(200).json({ message: 'Progress updated successfully', progress });
+      return    res.status(200).json({ message: 'Progress updated successfully', progress });
     } catch (error) {
         console.error('Error updating progress:', error); // Log lỗi chi tiết
         res.status(500).json({ message: error.message });
@@ -316,12 +319,23 @@ exports.updateProgress = async (req, res) => {
 
 exports.listUser = async (req, res) => {
     try {
-        const users = await User.find({}, {
+        const user = req.user;
+        // if( user.role === 2 ){
+        //     const users = await User.find({
+        //         user_id: user.user_id
+        //     }, {
+        //         email: 1,
+        //         code: 1,
+        //         user_id: 1
+        //     });
+        //   return  res.status(200).json(users);
+        // }
+        const users = await User.find({ }, {
             email: 1,
             code: 1,
             user_id: 1
         });
-        res.status(200).json(users);
+      return    res.status(200).json(users);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -338,7 +352,7 @@ exports.rechargeAccount = async (req, res) => {
 
         await purchase_history.save();
 
-        res.status(200).json({ message: 'Coin added successfully' });
+      return    res.status(200).json({ message: 'Coin added successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
 
@@ -356,10 +370,12 @@ exports.updateRechargeStatus = async (req, res) => {
         if (purchase_history.status === 'completed') {
             return res.status(400).json({ message: 'Purchase already completed' });
         }
-
-        pushase_history.status = status;
+        if (purchase_history.status === 'cancelled') {
+            return res.status(400).json({ message: 'Purchase already completed' });
+        }
+        purchase_history.status = status;
         await purchase_history.save();
-        res.status(200).json({ message: 'Purchase status updated successfully' });
+      return    res.status(200).json({ message: 'Purchase status updated successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -385,7 +401,7 @@ exports.listPurchaseHistory = async (req, res) => {
             foreignField: 'user_id'
         });
 
-        res.status(200).json({ purchase_history });
+      return    res.status(200).json({ purchase_history });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -405,7 +421,7 @@ exports.Invoicing = async (req, res) => {
 
 
 
-        res.status(200).json({ purchase_history });
+      return    res.status(200).json({ purchase_history });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

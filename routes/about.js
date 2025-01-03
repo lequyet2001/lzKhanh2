@@ -4,9 +4,7 @@ const router = express.Router();
 // List all routes
 router.get('/', (req, res) => {
     const abouts = [
-        "getAllCoursesAtHome",
-        "getAllCourses",
-       123,
+        "withdrawalAccount",
     ]
     res.status(200).json(abouts);
 });

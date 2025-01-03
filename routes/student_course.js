@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { joinCourseWithCoin, joinCourseWithCode, updateRechargeStatus, rechargeAccount, Invoicing, listUser, joinCourseWithTeacher, listStudentCourse, deleteStudentCourse, updateProgress, listPurchaseHistory } = require('../controllers/studentCourseController');
+const { joinCourseWithCoin, joinCourseWithCode, updateRechargeStatus, rechargeAccount, Invoicing, listUser, joinCourseWithTeacher, listStudentCourse, deleteStudentCourse, updateProgress, listPurchaseHistory, withdrawalAccount } = require('../controllers/studentCourseController');
 const { checkToken, checkAdmin, checkTeacher } = require('../middleware/checkToken');
 
 
@@ -28,6 +28,7 @@ router.get('/listStudentCourse', checkToken, listStudentCourse);
 
 
 router.post('/rechargeAccount', checkToken, rechargeAccount);
+router.post('/withdrawalAccount', checkToken, withdrawalAccount);
 
 router.post('/listPurchaseHistory', checkToken, listPurchaseHistory);
 router.post('/updateRechargeStatus', checkToken,checkAdmin ,updateRechargeStatus);

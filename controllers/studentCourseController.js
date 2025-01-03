@@ -13,14 +13,14 @@ exports.joinCourseWithCoin = async (req, res) => {
         const user_id = req.user.user_id;
         const { course_id } = req.body;
         const [course, user] = await Promise.all([
-            Course.findById(course_id),
-            User.findById(user_id)
+            Course.findOne({course_id}),
+            User.findOne({user_id})
         ]);
         if (!course) {
             return res.status(400).json({ message: 'Course not found' });
         }
 
-        if (user.coin < course.coursePrice) {
+        if (Number(user.coin) < Number(course.coursePrice)) {
             return res.status(400).json({ message: 'Not enough coin' });
         }
 
@@ -31,10 +31,9 @@ exports.joinCourseWithCoin = async (req, res) => {
         if (!updateUserCoin) {
             return res.status(400).json({ message: 'Failed to update coin student' });
         }
-
         const purchase_history = new PurchaseHistory({ course_id, user_id, totalPrice: course.coursePrice, status: 'completed', type: 'course' });
         await purchase_history.save();
-        const teacher = await User.findById({ user_id: course.user_id });
+        const teacher = await User.findOne({ user_id: course.user_id });
         const newCoinTeacher = Number(teacher.coin) + Number(course.coursePrice);
         const updateTeacherCoin = await User.updateOne({ user_id: course.user_id }, { $set: { coin: Number(newCoinTeacher) } });
         if (!updateTeacherCoin) {
@@ -45,6 +44,7 @@ exports.joinCourseWithCoin = async (req, res) => {
         await student_course.save();
       return    res.status(200).json({ message: 'Course joined successfully' });
     } catch (error) {
+        console.log(error)
         res.status(500).json({ message: error.message });
     }
 }
@@ -53,7 +53,7 @@ exports.joinCourseWithCode = async (req, res) => {
     try {
         const user = req.user;
         const { course_id, code } = req.body;
-        const course = await Course.findById(course_id);
+        const course = await Course.findOne({course_id});
         if (!course) {
             return res.status(400).json({ message: 'Course not found' });
         }
@@ -344,12 +344,48 @@ exports.listUser = async (req, res) => {
 exports.rechargeAccount = async (req, res) => {
     try {
         const { coin } = req.body;
+        if(coin < 0){
+            return res.status(400).json({ message: 'Coin must be greater than 0' });
+        }
 
         const user = req.user;
 
-        const purchase_history = new PurchaseHistory({ user_id: user.user_id, totalPrice: coin, status: 'pending', type: 'coin' });
+        const purchase_history = new PurchaseHistory({ user_id: user.user_id, totalPrice: coin, status: 'pending', type: 'coin',type2:'nap' });
 
         await purchase_history.save();
+        // const a = await User.find({user_id:user.user_id})
+        // await User.updateOne({
+        //     user_id: user.user_id
+        // }, {
+        //     coin: a[0].coin + coin
+        // })
+
+
+      return    res.status(200).json({ message: 'Coin added successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+
+    }
+}
+
+exports.withdrawalAccount = async (req, res) => {
+    try {
+        const { coin } = req.body;
+        console.log({coin})
+        if(coin < 0){
+            return res.status(400).json({ message: 'Coin must be greater than 0' });
+        }
+        const user = req.user;
+
+        const purchase_history = new PurchaseHistory({ user_id: user.user_id, totalPrice: coin, status: 'pending', type: 'coin',type2:'rut' });
+
+        await purchase_history.save();
+        // const a = await User.find({user_id:user.user_id})
+        // await User.updateOne({
+        //     user_id: user.user_id
+        // }, {
+        //     coin: a[0].coin + coin
+        // })
 
       return    res.status(200).json({ message: 'Coin added successfully' });
     } catch (error) {
@@ -361,12 +397,13 @@ exports.rechargeAccount = async (req, res) => {
 exports.updateRechargeStatus = async (req, res) => {
     try {
         const { purchase_id, status } = req.body;
-
+        console.log({body:req.body})
         const purchase_history = await PurchaseHistory.findById(purchase_id);
         if (!purchase_history) {
             return res.status(400).json({ message: 'Purchase not found' });
         }
         if (purchase_history.status === 'completed') {
+           
             return res.status(400).json({ message: 'Purchase already completed' });
         }
         if (purchase_history.status === 'cancelled') {
@@ -374,6 +411,15 @@ exports.updateRechargeStatus = async (req, res) => {
         }
         purchase_history.status = status;
         await purchase_history.save();
+        const a = await User.findOne({user_id:purchase_history.user_id})
+        let coin = purchase_history.type2 === 'nap' ? a.coin + purchase_history.totalPrice : a.coin - purchase_history.totalPrice
+        console.log(a)
+        await User.updateOne({
+            user_id: purchase_history.user_id
+        }, {
+            coin: coin
+        })
+
       return    res.status(200).json({ message: 'Purchase status updated successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -399,8 +445,8 @@ exports.listPurchaseHistory = async (req, res) => {
             localField: 'user_id',
             foreignField: 'user_id'
         });
-
-      return    res.status(200).json({ purchase_history });
+        const user = await User.findOne({user_id:user_id})
+      return   res.status(200).json({ purchase_history,coin:user.coin });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

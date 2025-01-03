@@ -34,9 +34,9 @@ exports.register = async (req, res) => {
         });
 
         await user.save();
-        res.status(200).json({ message: 'User registered successfully' });
+      return res.status(200).json({ message: 'User registered successfully' });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+      return res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
 
@@ -47,6 +47,7 @@ exports.login = async (req, res) => {
 
         // Check if user exists
         const user = await User.findOne({ email });
+        if(user.status == 3) return res.status(400).json({ message: 'User is not block' });
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -59,9 +60,9 @@ exports.login = async (req, res) => {
         const token = jwt.sign({ user }, process.env.YOUR_JWT_SECRET, { expiresIn: '7d' });
         const refreshToken = jwt.sign({ user }, process.env.YOUR_JWT_SECRET, { expiresIn: '7d' });
 
-        res.status(200).json({ token, refreshToken: refreshToken });
+      return res.status(200).json({ token, refreshToken: refreshToken });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+      return res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
 
@@ -73,14 +74,14 @@ exports.refreshToken = async (req, res) => {
     try {
         const user = jwt.verify(refreshToken, process.env.YOUR_JWT_SECRET);
         const newToken = jwt.sign({ user }, process.env.YOUR_JWT_SECRET, { expiresIn: '1h' });
-        res.status(200).json({ token: newToken });
+      return res.status(200).json({ token: newToken });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+      return res.status(500).json({ message: 'Server error', error: error.message });
     }
 }
 
 exports.logout = async (req, res) => {
-    res.status(200).json({ message: 'User logged out successfully' });
+  return res.status(200).json({ message: 'User logged out successfully' });
 }
 
 exports.changePassword = async (req, res) => {
@@ -96,9 +97,9 @@ exports.changePassword = async (req, res) => {
         }
         user.password = await bcrypt.hash(newPassword, 10);
         await user.save();
-        res.status(200).json({ message: 'Password changed successfully' });
+      return res.status(200).json({ message: 'Password changed successfully' });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+      return res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
 
@@ -116,9 +117,9 @@ exports.forgotPassword = async (req, res) => {
         user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
         await user.save();
 
-        res.status(200).json({ resetToken });
+      return res.status(200).json({ resetToken });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+      return res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
 
@@ -136,9 +137,9 @@ exports.resetPassword = async (req, res) => {
         user.resetPasswordExpires = undefined;
         await user.save();
 
-        res.status(200).json({ message: 'Password has been reset' });
+      return res.status(200).json({ message: 'Password has been reset' });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+      return res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
 

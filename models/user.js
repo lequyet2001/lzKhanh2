@@ -29,9 +29,9 @@ const userSchema = new mongoose.Schema({
     default: null
   },
   coin:{
-    type: String,
+    type: Number,
     required: false,
-    default:'100'
+    default:100
   },
   dob: {
     type: Date,

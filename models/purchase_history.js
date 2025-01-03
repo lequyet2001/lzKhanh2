@@ -31,6 +31,11 @@ const PurchaseHistorySchema = new Schema({
         required:true,
         enum:['coin','course']
     },
+    type2:{
+        type:String,
+        required:false,
+        enum:['nap','rut']
+    }
 });
 
 const PurchaseHistory = mongoose.model('PurchaseHistory', PurchaseHistorySchema);

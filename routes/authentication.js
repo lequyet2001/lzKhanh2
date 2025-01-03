@@ -8,6 +8,9 @@ router.post('/login', authController.login);
 router.post('/refresh-token', authController.refreshToken);
 router.post('/logout', authController.logout);
 router.post('/changePassword', checkToken,authController.changePassword);
+
+
+
 router.post('/forgotPassword',authController.forgotPassword);
 router.post('/resetPassword',checkResetToken,authController.resetPassword);
 

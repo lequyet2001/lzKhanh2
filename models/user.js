@@ -7,6 +7,22 @@ const userSchema = new mongoose.Schema({
     unique: true,
     auto: true
   },
+    email_contact:{
+      type: String,
+      default: null,
+      required: false
+    },
+    gender:{
+      type: Number,
+      required: false,
+      default: 0,
+      enum: [0, 1, 2,3] // 0: chưa cập nhật, 1: nam, 2: nu, 3: khac
+    },
+  phone_contact:{
+    type: String,
+    default: null,
+    required: false
+  },
   full_name: {
     type: String,
     required: false,

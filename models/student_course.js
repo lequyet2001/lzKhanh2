@@ -12,16 +12,3 @@ module.exports = StudentCourse;
 
 
 
-
-/*
-
-
-    progress:[
-        "asdfasdasdasdas",
-        "asdfasdasdasdas",
-        "asdfasdasdasdas",
-        "asdfasdasdasdas",
-    
-    ]
-
-*/ 

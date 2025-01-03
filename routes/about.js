@@ -5,6 +5,7 @@ const router = express.Router();
 router.get('/', (req, res) => {
     const abouts = [
         "getAllCoursesAtHome",
+        "getAllCourses",
        123,
     ]
     res.status(200).json(abouts);

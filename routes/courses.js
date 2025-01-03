@@ -13,7 +13,7 @@ router.post('/all', checkToken,getAllCourses);
 
 router.post('/getAllCoursesAtHome',checkToken2, getAllCoursesAtHome);
 
-router.post('/getAllCourses', getAllCourses3);
+router.post('/getAllCourses',checkToken2, getAllCourses3);
 
 router.post('/all2', checkToken,getAllCourses2);
 router.post('/getCourseById',checkToken2 ,getCourseById);

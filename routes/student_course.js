@@ -28,7 +28,8 @@ router.get('/listStudentCourse', checkToken, listStudentCourse);
 
 
 router.post('/rechargeAccount', checkToken, rechargeAccount);
-router.post('/listPurchaseHistory', checkToken,checkAdmin, listPurchaseHistory);
+
+router.post('/listPurchaseHistory', checkToken, listPurchaseHistory);
 router.post('/updateRechargeStatus', checkToken,checkAdmin ,updateRechargeStatus);
 router.post('/Invoicing', checkToken, Invoicing);
 

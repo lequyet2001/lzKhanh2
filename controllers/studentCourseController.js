@@ -307,7 +307,6 @@ exports.updateProgress = async (req, res) => {
         student_course.progress = progress;
         student_course.list_completed.push(lesson_id);
         await student_course.save();
-
       return    res.status(200).json({ message: 'Progress updated successfully', progress });
     } catch (error) {
         console.error('Error updating progress:', error); // Log lỗi chi tiết

@@ -11,7 +11,7 @@ const Result = require('../models/Quizzs/result');
 exports.getNameAndIdCourse = async (req, res) => {
     try {
         const user = req.user;
-        if(user.role === 2){
+        if (user.role === 2) {
 
             const courses = await Course.find({
                 user_id: user.user_id
@@ -24,7 +24,7 @@ exports.getNameAndIdCourse = async (req, res) => {
                 delete course._id;
             });
             courses.unshift({ value: '', label: 'Tất cả' });
-          return    res.status(200).json(courses);
+            return res.status(200).json(courses);
         }
         const courses = await Course.find({}, { course_id: 1, name: 1 }).lean();
         courses.forEach(course => {
@@ -35,7 +35,7 @@ exports.getNameAndIdCourse = async (req, res) => {
             delete course._id;
         });
         courses.unshift({ value: '', label: 'Tất cả' });
-      return    res.status(200).json(courses);
+        return res.status(200).json(courses);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -100,7 +100,7 @@ exports.createCourse = async (req, res) => {
             })
         ]);
 
-      return    res.status(200).json({ message: 'Course created successfully', course });
+        return res.status(200).json({ message: 'Course created successfully', course });
     } catch (error) {
         if (error.name === 'MongoError') {
             console.log('MongoDB Error:', error);
@@ -225,16 +225,17 @@ exports.getAllCourses = async (req, res) => {
             }
         ]);
 
-      return    res.status(200).json(courses); // Trả về danh sách courses
+        return res.status(200).json(courses); // Trả về danh sách courses
     } catch (error) {
         console.error('Error fetching courses:', error); // Log lỗi chi tiết
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
 
-exports.getAllCourses3 = async (_, res) => {
+exports.getAllCourses3 = async (req, res) => {
     try {
-        const courses = await Course.aggregate([
+        const user_id = req.user?.user_id;
+        const pipeline =[
             {
                 $addFields: {
                     user_id: { $toObjectId: "$user_id" } // Chuyển đổi user_id sang ObjectId
@@ -343,9 +344,18 @@ exports.getAllCourses3 = async (_, res) => {
                     questionsets: 1
                 }
             }
-        ]);
+        ]
+        if(user_id) {
+            const student_courses = await StudentCourse.find({ user_id: user_id });
+            pipeline.unshift({ $match: { course_id: { $nin: student_courses.map(e => e.course_id) } } });
+            const courses = await Course.aggregate(pipeline);
+            return res.status(200).json(courses); // Trả về danh sách courses
+        }
 
-      return    res.status(200).json(courses); // Trả về danh sách courses
+
+        const courses = await Course.aggregate(pipeline);
+
+        return res.status(200).json(courses); // Trả về danh sách courses
     } catch (error) {
         console.error('Error fetching courses:', error); // Log lỗi chi tiết
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -354,7 +364,7 @@ exports.getAllCourses3 = async (_, res) => {
 
 exports.getAllCoursesAtHome = async (req, res) => {
     try {
-        const pipeline =  [
+        const pipeline = [
             {
                 $addFields: {
                     user_id: { $toObjectId: "$user_id" } // Chuyển đổi user_id sang ObjectId
@@ -435,8 +445,8 @@ exports.getAllCoursesAtHome = async (req, res) => {
                     user_name: { $first: '$user_name' },
                     sections: { $push: '$sections' }, // Gộp lại các sections, bao gồm lessons
                     questionsets: { $push: '$questionsets' },
-                    createdAt: { $first: '$created_at'},
-                    updatedAt: { $first: '$updated_at'}
+                    createdAt: { $first: '$created_at' },
+                    updatedAt: { $first: '$updated_at' }
                 }
             },
             {
@@ -472,27 +482,27 @@ exports.getAllCoursesAtHome = async (req, res) => {
 
         const Newest = await Course.aggregate(pipeline).sort({ createdAt: -1 }).limit(10);
         const Hot = await Course.aggregate(pipeline).sort({ enroll: -1 }).limit(10);
-        let ReComment = await Course.aggregate(pipeline).sort({ createdAt: -1 }).limit(10);
-        if(user?.user_id !== 'undefined' && user?.user_id !== undefined){
+        let ReCommend = await Course.aggregate(pipeline).sort({ createdAt: -1 }).limit(10);
+        const freeCourses = await Course.aggregate(pipeline).match({ coursePrice: "0" }).limit(10);
+        if (user?.user_id !== 'undefined' && user?.user_id !== undefined) {
             const StudentCourses = await StudentCourse.find({ user_id: user.user_id })
-                    .populate({
-                        path:'course_id',
-                        select: { _id: 0, course_id: 1, name: 1,category:1 },
-                        model: 'Course',
-                        localField: 'course_id',
-                        foreignField: 'course_id'
-                    }).sort({ createdAt: -1 }).limit(10);
-            pipeline.push({
-                $match: { category: { $in: StudentCourses.map(e => e.course_id.category) } }
-            })
-            ReComment = await Course.aggregate(pipeline).sort({ createdAt: -1 }).limit(10);
+                .populate({
+                    path: 'course_id',
+                    select: { _id: 0, course_id: 1, name: 1, category: 1 },
+                    model: 'Course',
+                    localField: 'course_id',
+                    foreignField: 'course_id'
+                }).sort({ createdAt: -1 }).limit(10);
+      
+            ReCommend = await Course.aggregate(pipeline).match({category: { $in: StudentCourses.map(e => e.course_id.category) }}).sort({ createdAt: -1 }).limit(10);
         }
 
-      return    res.status(200).json({
+        return res.status(200).json({
             Newest,
             Hot,
-            ReComment
-      }); // Trả về danh sách courses
+            ReCommend,
+            freeCourses
+        }); // Trả về danh sách courses
     } catch (error) {
         console.error('Error fetching courses:', error); // Log lỗi chi tiết
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -552,59 +562,78 @@ exports.getAllCourses2 = async (req, res) => {
             }
         ]);
 
-      return    res.status(200).json(StudentCourses); // Trả về danh sách courses
+        return res.status(200).json(StudentCourses); // Trả về danh sách courses
     } catch (error) {
         console.error('Error fetching courses:', error); // Log lỗi chi tiết
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
 exports.getCourseById = async (req, res) => {
     try {
         const user_id = req.user?.user_id;
-        const { course_id } = req.body; 
+        const { course_id } = req.body;
+
+        // Kiểm tra course_id hợp lệ
         if (!mongoose.Types.ObjectId.isValid(course_id)) {
             return res.status(400).json({ message: 'Invalid course ID' });
         }
-        const course = await Course.findOne({ course_id })
+
+        // Lấy thông tin khóa học
+        const course = await Course.findOne({ course_id: course_id })
             .populate({
                 path: 'user_id',
                 select: { _id: 0, user_id: 1, name: 1 },
-                model: 'User',
-                localField: 'user_id',
-                foreignField: 'user_id'
-            })
-         course.sections = await Section.find({ course_id: course_id },{
-            _id:1,
-            title:1,
-            order_Number:1
-        }).sort({ order_Number: 1 })
-        
-        course.sections = await Promise.all(course.sections.map(async (section) => {
-            section.lessions = await Lesson.find({ section_id: section._id },{
-                _id:1,
-                title:1,
-                order_Number:1,
-                video_url:1
-            }).sort({ order_Number: 1 })
+                model: 'User'
+            });
 
-            return section
-        }))
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
 
-        if(user_id){
+        // Lấy danh sách sections
+        const sections = await Section.find({ course_id }, { _id: 1, title: 1, order_Number: 1 })
+            .sort({ order_Number: 1 });
+
+        // Lấy danh sách lessons trong từng section
+        for (let section of sections) {
+            const lessons = await Lesson.find({ section_id: section._id }, {
+                _id: 1,
+                title: 1,
+                order_Number: 1,
+                video_url: 1
+            }).sort({ order_Number: 1 });
+
+            section = section;
+            section.lessions = lessons;
+        }
+
+        course.sections = sections;
+
+        // Nếu có user_id, kiểm tra tiến độ học
+        if (user_id) {
             const studentCourse = await StudentCourse.findOne({ course_id, user_id });
-            console.log({ studentCourse });
             if (studentCourse) {
                 course._doc.progress = studentCourse.progress;
+
+                const completedLessons = new Set(studentCourse.list_completed.map(id => id.toString()));
+
+                // Gắn cờ `isCompleted` cho mỗi lesson
+                course.sections.forEach(section => {
+                    section.lessions.forEach(lesson => {
+                        lesson._doc.isCompleted = completedLessons.has(lesson._id.toString());
+                    });
+                });
             }
         }
 
-
-      return   res.status(200).json(course);
+        return res.status(200).json(course);
     } catch (error) {
         console.error('Error fetching course:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
 exports.getCourse = async (req, res) => {
     try {
         const course_id = req.body.course_id;
@@ -614,14 +643,14 @@ exports.getCourse = async (req, res) => {
             if (!courses) {
                 return res.status(404).json({ message: 'Bạn chưa có khóa học nào' });
             }
-          return    res.status(200).json(courses);
+            return res.status(200).json(courses);
         }
 
         const course = await Course.findOne({ course_id });
         if (!course) {
             return res.status(404).json({ message: 'Course not found' });
         }
-      return    res.status(200).json(course);
+        return res.status(200).json(course);
 
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -740,7 +769,7 @@ exports.getCourseByIdAtHomePage = async (req, res) => {
     if (!course || course.length === 0) {
         return res.status(404).json({ message: 'Course not found' });
     }
-  return    res.status(200).json(course[0]);
+    return res.status(200).json(course[0]);
 
 }
 exports.updateCourse = async (req, res) => {
@@ -760,7 +789,7 @@ exports.updateCourse = async (req, res) => {
         const quizsArray = Array.isArray(quizs) ? quizs : [];
 
         const course = await Course.findOneAndUpdate(
-            { course_id: course_id , user_id: user_id},
+            { course_id: course_id, user_id: user_id },
             { $set: { name, title, author, image, hour, discount, benefits, lecture, level, requirements, rating, coursePrice, originalPrice, description, category, enroll, cert } },
             { new: true }
         );
@@ -777,10 +806,10 @@ exports.updateCourse = async (req, res) => {
 
         await Promise.all([
             ...sectionsArray.map(async (section, index) => {
-                console.log({ 
-                    section:section.title,
+                console.log({
+                    section: section.title,
                     order_Number: index
-                 });
+                });
                 const id = new mongoose.Types.ObjectId();
                 const newSection = new Section({
                     _id: id,
@@ -817,7 +846,7 @@ exports.updateCourse = async (req, res) => {
             })
         ]);
 
-      return    res.status(200).json({ message: 'Course updated successfully', course });
+        return res.status(200).json({ message: 'Course updated successfully', course });
     } catch (error) {
         console.error('Error updating course:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -850,7 +879,7 @@ exports.deleteCourse = async (req, res) => {
 
 
 
-      return    res.status(200).json({ message: 'Course deleted successfully' });
+        return res.status(200).json({ message: 'Course deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -874,7 +903,7 @@ exports.createQuestion = async (req, res) => {
         }
         const newQuestion = new Question({ course_id, question, options, difficulty });
         await newQuestion.save();
-      return    res.status(200).json({ message: 'Question created successfully' });
+        return res.status(200).json({ message: 'Question created successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -897,7 +926,7 @@ exports.updateQuestion = async (req, res) => {
         if (!updatedQuestion) {
             return res.status(404).json({ message: 'Question not found' });
         }
-      return    res.status(200).json({ message: 'Question updated successfully', updatedQuestion });
+        return res.status(200).json({ message: 'Question updated successfully', updatedQuestion });
 
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -914,7 +943,7 @@ exports.deleteQuestion = async (req, res) => {
             return res.status(404).json({ message: 'Question not found' });
         }
         await Question.deleteOne({ _id: question_id });
-      return    res.status(200).json({ message: 'Question deleted successfully' });
+        return res.status(200).json({ message: 'Question deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -942,7 +971,7 @@ exports.createQuestions = async (req, res) => {
             }
         }))
 
-      return    res.status(200).json({ message: 'Question created successfully' });
+        return res.status(200).json({ message: 'Question created successfully' });
 
 
     } catch (error) {
@@ -958,19 +987,19 @@ exports.getQuestions = async (req, res) => {
         const { course_id } = req.body;
         const user = req.user;
         if (!course_id) {
-            const questions = await Question.find({ })
-            .populate({
-                path:'course_id',
-                select:{
-                    _id:0,
-                    user_id:1
-                },
-                model:'Course',
-                localField:'course_id',
-                foreignField:'course_id'
-            });
+            const questions = await Question.find({})
+                .populate({
+                    path: 'course_id',
+                    select: {
+                        _id: 0,
+                        user_id: 1
+                    },
+                    model: 'Course',
+                    localField: 'course_id',
+                    foreignField: 'course_id'
+                });
             console.log({ questions });
-            const data = questions.filter(q => q.course_id.user_id == user.user_id);            
+            const data = questions.filter(q => q.course_id.user_id == user.user_id);
             return res.status(200).json(data);
         }
         const course = await Course({ course_id, user_id: user.user_id });
@@ -978,7 +1007,7 @@ exports.getQuestions = async (req, res) => {
             return res.status(404).json({ message: 'Course not found' });
         }
         const questions = await Question.find({ course_id });
-      return    res.status(200).json(questions);
+        return res.status(200).json(questions);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -1018,7 +1047,7 @@ exports.createTest = async (req, res) => {
 
         const newTest = new QuestionSet({ course_id, name, easeQuestion, mediumQuestion, hardQuestion, duration });
         await newTest.save();
-      return    res.status(200).json({ message: 'Test created successfully' });
+        return res.status(200).json({ message: 'Test created successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -1040,7 +1069,7 @@ exports.updateTest = async (req, res) => {
         if (!updatedTest) {
             return res.status(404).json({ message: 'Test not found' });
         }
-      return    res.status(200).json({ message: 'Test updated successfully', updatedTest });
+        return res.status(200).json({ message: 'Test updated successfully', updatedTest });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -1057,7 +1086,7 @@ exports.deleteTest = async (req, res) => {
             return res.status(404).json({ message: 'Test not found' });
         }
         await QuestionSet.deleteOne({ _id: test_id });
-      return    res.status(200).json({ message: 'Test deleted successfully' });
+        return res.status(200).json({ message: 'Test deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
 
@@ -1089,7 +1118,7 @@ exports.getTestById = async (req, res) => {
         if (!test) {
             return res.status(404).json({ message: 'Test not found' });
         }
-      return    res.status(200).json(test);
+        return res.status(200).json(test);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -1120,7 +1149,7 @@ exports.generateQuestionsSet = async (req, res) => {
 
         const questions = [...easeQuestions, ...mediumQuestions, ...hardQuestions];
 
-      return    res.status(200).json({ questions, duration, name: questionSet.name, questionSet_id });
+        return res.status(200).json({ questions, duration, name: questionSet.name, questionSet_id });
     } catch (error) {
         console.error('Error creating question set:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -1148,13 +1177,13 @@ exports.result = async (req, res) => {
         //     return res.status(404).json({ message: 'Question set not found' });
         // }
 
-        const newResult = new Result({ user_id, questionSet_id: questionSetId, course_id: new mongoose.Types.ObjectId(course_id), answers: questions, result, timeTaken,count });
+        const newResult = new Result({ user_id, questionSet_id: questionSetId, course_id: new mongoose.Types.ObjectId(course_id), answers: questions, result, timeTaken, count });
         await newResult.save();
 
 
 
 
-      return    res.status(200).json({ message: 'Result saved successfully' });
+        return res.status(200).json({ message: 'Result saved successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -1276,7 +1305,7 @@ exports.getResults = async (req, res) => {
         ]);
 
         console.log({ results });
-      return    res.status(200).json(results);
+        return res.status(200).json(results);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Lỗi server', error: error.message });
@@ -1309,7 +1338,7 @@ exports.getResultByIdQuestionSet = async (req, res) => {
             {
                 $match: { user_id: new mongoose.Types.ObjectId(user_id), questionSet_id: new mongoose.Types.ObjectId(questionSet_id) }
             },
-            {   
+            {
                 $lookup: {
                     from: 'questions',
                     localField: 'answers.questionId',
@@ -1317,14 +1346,16 @@ exports.getResultByIdQuestionSet = async (req, res) => {
                     as: 'questions'
                 }
             },
-            {$limit:1}
-            ,{
-                $group:{
+            { $limit: 1 }
+            , {
+                $group: {
                     _id: '$_id',
-                    selectedAnswer: { $first: {
-                        key: '$answers.selectedAnswer',
-                        value: '$answers.questionId'
-                    }},
+                    selectedAnswer: {
+                        $first: {
+                            key: '$answers.selectedAnswer',
+                            value: '$answers.questionId'
+                        }
+                    },
                     questions: { $first: '$questions' },
                 }
             },
@@ -1335,13 +1366,13 @@ exports.getResultByIdQuestionSet = async (req, res) => {
                     questions: 1
                 }
             }
-        ])  
+        ])
         if (!results) {
             return res.status(404).json({ message: 'Result not found' });
         }
 
 
-      return    res.status(200).json(results[0]);
+        return res.status(200).json(results[0]);
 
 
     } catch (error) {

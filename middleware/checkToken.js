@@ -31,7 +31,9 @@ const checkToken2 = (req, res, next) => {
 };
 
 const checkResetToken = (req, res, next) => {
-    const { token } = req.body;
+    const authorization = req.headers['authorization'];
+    const token = authorization && authorization.split(' ')[1];
+    console.log(token);
     if (!token) {
         return res.status(403).json({ message: 'No token provided' });
     }

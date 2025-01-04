@@ -479,6 +479,8 @@ exports.getAllCoursesAtHome = async (req, res) => {
             }
         ]
         const user = req.user;
+        const student_courses = await StudentCourse.find({ user_id: user?.user_id });
+        pipeline.unshift({ $match: { course_id: { $nin: student_courses.map(e => e.course_id) } } });
 
         const Newest = await Course.aggregate(pipeline).sort({ createdAt: -1 }).limit(10);
         const Hot = await Course.aggregate(pipeline).sort({ enroll: -1 }).limit(10);
@@ -657,121 +659,121 @@ exports.getCourse = async (req, res) => {
     }
 
 }
-exports.getCourseByIdAtHomePage = async (req, res) => {
-    try {
-        const { course_id } = req.body; // Use req.params to get course_id from URL parameters
-        if (!mongoose.Types.ObjectId.isValid(course_id)) {
-            return res.status(400).json({ message: 'Invalid course ID' });
-        }
+// exports.getCourseByIdAtHomePage = async (req, res) => {
+//     try {
+//         const { course_id } = req.body; // Use req.params to get course_id from URL parameters
+//         if (!mongoose.Types.ObjectId.isValid(course_id)) {
+//             return res.status(400).json({ message: 'Invalid course ID' });
+//         }
 
-    } catch (error) {
-        console.error('Error fetching course:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
+//     } catch (error) {
+//         console.error('Error fetching course:', error);
+//         res.status(500).json({ message: 'Server error', error: error.message });
+//     }
 
-    const course = await Course.aggregate([
-        {
-            $match: { course_id: new mongoose.Types.ObjectId(course_id) } // Convert course_id to ObjectId
-        },
-        { $limit: 1 },
-        {
-            $addFields: {
-                user_id: { $toObjectId: "$user_id" }
-            }
-        },
-        {
-            $lookup: {
-                from: 'users',
-                localField: 'user_id',
-                foreignField: 'user_id',
-                as: 'user'
-            }
-        },
-        {
-            $unwind: {
-                path: '$user',
-                preserveNullAndEmptyArrays: true
-            }
-        },
-        {
-            $lookup: {
-                from: 'sections',
-                localField: 'course_id',
-                foreignField: 'course_id',
-                as: 'sections'
-            }
-        },
-        {
-            $unwind: {
-                path: '$sections',
-                preserveNullAndEmptyArrays: true
-            }
-        },
-        {
-            $lookup: {
-                from: 'lessions',
-                localField: 'sections._id',
-                foreignField: 'section_id',
-                as: 'sections.lessions'
-            }
-        },
-        {
-            $group: {
-                _id: '$_id',
-                course_id: { $first: '$course_id' },
-                name: { $first: '$name' },
-                title: { $first: '$title' },
-                image: { $first: '$image' },
-                hour: { $first: '$hour' },
-                author: { $first: '$author' },
-                discount: { $first: '$discount' },
-                benefits: { $first: '$benefits' },
-                lecture: { $first: '$lecture' },
-                level: { $first: '$level' },
-                requirements: { $first: '$requirements' },
-                rating: { $first: '$rating' },
-                coursePrice: { $first: '$coursePrice' },
-                originalPrice: { $first: '$originalPrice' },
-                description: { $first: '$description' },
-                category: { $first: '$category' },
-                enroll: { $first: '$enroll' },
-                cert: { $first: '$cert' },
-                user_name: { $first: '$user_name' },
-                sections: { $push: '$sections' }
-            }
-        },
-        {
-            $project: {
-                _id: 0,
-                course_id: 1,
-                name: 1,
-                title: 1,
-                image: 1,
-                hour: 1,
-                author: 1,
-                discount: 1,
-                benefits: 1,
-                lecture: 1,
-                level: 1,
-                requirements: 1,
-                rating: 1,
-                coursePrice: 1,
-                originalPrice: 1,
-                description: 1,
-                category: 1,
-                enroll: 1,
-                cert: 1,
-                user_name: 1,
-                sections: 1
-            }
-        }
-    ]);
-    if (!course || course.length === 0) {
-        return res.status(404).json({ message: 'Course not found' });
-    }
-    return res.status(200).json(course[0]);
+//     const course = await Course.aggregate([
+//         {
+//             $match: { course_id: new mongoose.Types.ObjectId(course_id) } // Convert course_id to ObjectId
+//         },
+//         { $limit: 1 },
+//         {
+//             $addFields: {
+//                 user_id: { $toObjectId: "$user_id" }
+//             }
+//         },
+//         {
+//             $lookup: {
+//                 from: 'users',
+//                 localField: 'user_id',
+//                 foreignField: 'user_id',
+//                 as: 'user'
+//             }
+//         },
+//         {
+//             $unwind: {
+//                 path: '$user',
+//                 preserveNullAndEmptyArrays: true
+//             }
+//         },
+//         {
+//             $lookup: {
+//                 from: 'sections',
+//                 localField: 'course_id',
+//                 foreignField: 'course_id',
+//                 as: 'sections'
+//             }
+//         },
+//         {
+//             $unwind: {
+//                 path: '$sections',
+//                 preserveNullAndEmptyArrays: true
+//             }
+//         },
+//         {
+//             $lookup: {
+//                 from: 'lessions',
+//                 localField: 'sections._id',
+//                 foreignField: 'section_id',
+//                 as: 'sections.lessions'
+//             }
+//         },
+//         {
+//             $group: {
+//                 _id: '$_id',
+//                 course_id: { $first: '$course_id' },
+//                 name: { $first: '$name' },
+//                 title: { $first: '$title' },
+//                 image: { $first: '$image' },
+//                 hour: { $first: '$hour' },
+//                 author: { $first: '$author' },
+//                 discount: { $first: '$discount' },
+//                 benefits: { $first: '$benefits' },
+//                 lecture: { $first: '$lecture' },
+//                 level: { $first: '$level' },
+//                 requirements: { $first: '$requirements' },
+//                 rating: { $first: '$rating' },
+//                 coursePrice: { $first: '$coursePrice' },
+//                 originalPrice: { $first: '$originalPrice' },
+//                 description: { $first: '$description' },
+//                 category: { $first: '$category' },
+//                 enroll: { $first: '$enroll' },
+//                 cert: { $first: '$cert' },
+//                 user_name: { $first: '$user_name' },
+//                 sections: { $push: '$sections' }
+//             }
+//         },
+//         {
+//             $project: {
+//                 _id: 0,
+//                 course_id: 1,
+//                 name: 1,
+//                 title: 1,
+//                 image: 1,
+//                 hour: 1,
+//                 author: 1,
+//                 discount: 1,
+//                 benefits: 1,
+//                 lecture: 1,
+//                 level: 1,
+//                 requirements: 1,
+//                 rating: 1,
+//                 coursePrice: 1,
+//                 originalPrice: 1,
+//                 description: 1,
+//                 category: 1,
+//                 enroll: 1,
+//                 cert: 1,
+//                 user_name: 1,
+//                 sections: 1
+//             }
+//         }
+//     ]);
+//     if (!course || course.length === 0) {
+//         return res.status(404).json({ message: 'Course not found' });
+//     }
+//     return res.status(200).json(course[0]);
 
-}
+// }
 exports.updateCourse = async (req, res) => {
     try {
         const { course_id } = req.body;

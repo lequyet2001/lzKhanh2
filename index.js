@@ -16,6 +16,7 @@ const sectionRouter = require('./routes/sections');
 const categoryRouter = require('./routes/categories');
 const studentCourse = require('./routes/student_course');
 const chat = require('./routes/chat');
+const cartRouter = require('./routes/cart');
 app.use(cors());
 app.use(express.json()); // Middleware to parse JSON bodies
 const path = require('path');
@@ -35,14 +36,15 @@ mongoose.connect(uri).then((e) => {
   console.error('Error connecting to MongoDB', err);
 });
 
-app.use('/api/users', checkToken.checkToken, usersRouter);
-app.use('/api/auth', authenticationRouter);
-app.use('/api/admin', checkToken.checkToken,checkToken.checkAdmin, adminRouter);
+app.use('/api/chat', chat);
+app.use('/api/cart', cartRouter);
 app.use('/api/courses', courseRouter);
 app.use('/api/sections',sectionRouter );
+app.use('/api/auth', authenticationRouter);
 app.use('/api/categories', categoryRouter);
 app.use('/api/student_course', studentCourse);
-app.use('/api/chat', chat);
+app.use('/api/users', checkToken.checkToken, usersRouter);
+app.use('/api/admin', checkToken.checkToken,checkToken.checkAdmin, adminRouter);
 
 app.use('/', defaultRouter);
 

@@ -18,7 +18,7 @@ exports.getCategories = async (req, res) => {
 
 exports.deleteCategory = async (req, res) => {
     try {
-        const category = await Category.findOneAndDelete({category_id:req.body.category_id});
+        const category = await Category.findOneAndDelete({_id:req.body.category_id});
         if (!category) {
             return res.status(404).json({ message: 'Category not found' });
         }
@@ -30,7 +30,9 @@ exports.deleteCategory = async (req, res) => {
 
 exports.updateCategory = async (req, res) => {
     try {
-        const category = await Category.findOneAndUpdate({category_id:req.body.category_id},{ $set: req.body }, { new: true });
+        const { name, description,category_id } = req.body;
+        console.log(req.body)
+        const category = await Category.findOneAndUpdate({_id:category_id},{ $set: {name,description} }, { new: true });
         if (!category) {
             return res.status(404).json({ message: 'Category not found' });
         }

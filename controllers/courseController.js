@@ -235,7 +235,7 @@ exports.getAllCourses = async (req, res) => {
 exports.getAllCourses3 = async (req, res) => {
     try {
         const user_id = req.user?.user_id;
-        const pipeline =[
+        const pipeline = [
             {
                 $addFields: {
                     user_id: { $toObjectId: "$user_id" } // Chuyển đổi user_id sang ObjectId
@@ -345,7 +345,7 @@ exports.getAllCourses3 = async (req, res) => {
                 }
             }
         ]
-        if(user_id) {
+        if (user_id) {
             const student_courses = await StudentCourse.find({ user_id: user_id });
             pipeline.unshift({ $match: { course_id: { $nin: student_courses.map(e => e.course_id) } } });
             const courses = await Course.aggregate(pipeline);
@@ -495,8 +495,8 @@ exports.getAllCoursesAtHome = async (req, res) => {
                     localField: 'course_id',
                     foreignField: 'course_id'
                 }).sort({ createdAt: -1 }).limit(10);
-      
-            ReCommend = await Course.aggregate(pipeline).match({category: { $in: StudentCourses.map(e => e.course_id.category) }}).sort({ createdAt: -1 }).limit(10);
+
+            ReCommend = await Course.aggregate(pipeline).match({ category: { $in: StudentCourses.map(e => e.course_id.category) } }).sort({ createdAt: -1 }).limit(10);
         }
 
         return res.status(200).json({
@@ -511,12 +511,12 @@ exports.getAllCoursesAtHome = async (req, res) => {
     }
 };
 
+
 exports.getAllCourses2 = async (req, res) => {
     try {
         const user_id = req.user.user_id;
         console.log({ user_id });
-
-        const StudentCourses = await StudentCourse.aggregate([
+        const pipeline = [
             {
                 $match: { user_id: new mongoose.Types.ObjectId(user_id) } // Nếu user_id là ObjectId, giữ nguyên, nếu không cần sửa trong DB
             },
@@ -562,9 +562,11 @@ exports.getAllCourses2 = async (req, res) => {
                     progress: 1
                 }
             }
-        ]);
+        ]
+        const StudentCourses = await StudentCourse.aggregate(pipeline);
+        const CourseSuccess = await StudentCourse.aggregate(pipeline).match({ progress: 100 });
 
-        return res.status(200).json(StudentCourses); // Trả về danh sách courses
+        return res.status(200).json({ StudentCourses, CourseSuccess }); // Trả về danh sách courses
     } catch (error) {
         console.error('Error fetching courses:', error); // Log lỗi chi tiết
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -575,7 +577,7 @@ exports.getCourseById = async (req, res) => {
     try {
         const user_id = req.user?.user_id;
         const { course_id } = req.body;
-
+        console.log({ course_id })
         // Kiểm tra course_id hợp lệ
         if (!mongoose.Types.ObjectId.isValid(course_id)) {
             return res.status(400).json({ message: 'Invalid course ID' });
@@ -1150,8 +1152,16 @@ exports.generateQuestionsSet = async (req, res) => {
         }
 
         const questions = [...easeQuestions, ...mediumQuestions, ...hardQuestions];
-
-        return res.status(200).json({ questions, duration, name: questionSet.name, questionSet_id });
+        const questionsArray = questions.map(q => {
+            const { _id, question, options, difficulty } = q;
+            return {
+                questionId: _id,
+                question,
+                options: options.sort(() => Math.random() - 0.5), // Shuffle options
+                difficulty
+            };
+        })
+        return res.status(200).json({ questions: questionsArray, duration, name: questionSet.name, questionSet_id });
     } catch (error) {
         console.error('Error creating question set:', error);
         res.status(500).json({ message: 'Server error', error: error.message });

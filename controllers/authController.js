@@ -7,6 +7,8 @@ const nodemailer = require('nodemailer');
 const { send } = require('process');
 const sendEmail = require('../sendEmail');
 const { promises } = require('dns');
+const Cart = require('../models/Cart/cart');
+const { default: mongoose } = require('mongoose');
 
 dotenv.config();
 
@@ -24,8 +26,10 @@ exports.register = async (req, res) => {
             return res.status(400).json({ message: 'Password is required' });
         }
         const codeuser = crypto.randomBytes(4).toString('hex');
+        const user_id = new mongoose.Types.ObjectId();
         // Create new user
         user = new User({
+            user_id,
             full_name,
             dob,
             email,
@@ -35,7 +39,8 @@ exports.register = async (req, res) => {
             role,
             code: codeuser
         });
-
+        const cart = new Cart({ user_id: user_id, items: [] });
+        await cart.save();
         await user.save();
       return res.status(200).json({ message: 'User registered successfully' });
     } catch (error) {
@@ -50,10 +55,10 @@ exports.login = async (req, res) => {
 
         // Check if user exists
         const user = await User.findOne({ email });
-        if(user.status == 3) return res.status(400).json({ message: 'User is not block' });
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
+        if(user.status == 3) return res.status(400).json({ message: 'User is not block' });
         // Check password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {

@@ -5,6 +5,8 @@ const PurchaseHistory = require('../models/purchase_history');
 const { default: mongoose } = require('mongoose');
 const Lesson = require('../models/lessons');
 const Section = require('../models/sections');
+const Cart = require('../models/Cart/cart');
+const CartDetail = require('../models/Cart/cartDetail');
 
 
 
@@ -48,6 +50,77 @@ exports.joinCourseWithCoin = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 }
+
+
+exports.joinCoursesInCart = async (req, res) => {
+    try {
+        const user_id = req.user.user_id;
+        const user = await User.findOne({ user_id });
+        const cart =  await Cart.findOne({ user_id }).populate('items')
+        const course_ids = cart.items.map(item => item.course_id);
+        console.log({course_ids})
+        const userCart = await Cart.findOne({ user_id });
+        if (!userCart) {
+            return res.status(400).json({ message: 'Cart not found' });
+        }
+        if (userCart.items.length === 0) {
+            return res.status(400).json({ message: 'Cart is empty' });
+        }
+        let totalPrice = userCart.totalPrice;
+        const courses = await Course.find({ course_id: { $in: course_ids } });
+        if (courses.length !== course_ids.length) {
+            return res.status(400).json({ message: 'Some courses not found' });
+        }
+        console.log({totalPrice})
+        console.log({user})
+        if (Number(user.coin) < totalPrice) {
+            return res.status(400).json({ message: 'Not enough coin' });
+        }
+        
+        const checkExist = await StudentCourse.find({ user_id, course_id: { $in: course_ids } });
+        if (checkExist.length > 0) {
+            return res.status(400).json({ message: 'Some courses already joined' });
+        }
+        await Promise.all(
+            courses.map(async (course) => {
+
+              
+                const student_course = new StudentCourse({ course_id: course.course_id, user_id });
+                await student_course.save();
+                const enroll = Number(course.enroll) + 1;
+                await Course.updateOne({ course_id: course.course_id }, { $set: { enroll: enroll } });
+                const purchase_history = new PurchaseHistory({ course_id: course.course_id, user_id, totalPrice: course.coursePrice, status: 'completed', type: 'course' });
+                await purchase_history.save();
+            })
+        );
+        const newCoin = Number(user.coin) -  totalPrice;
+        
+        cart.items.forEach(async (item) => {
+            await CartDetail.findOneAndDelete({_id:item});
+        });
+
+        cart.items = [];
+
+        cart.totalPrice = 0;
+        await cart.save();
+
+        await User.updateOne({ user_id }, { $set: { coin: newCoin } });
+      return    res.status(200).json({ message: 'Courses joined successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
 
 exports.joinCourseWithCode = async (req, res) => {
     try {

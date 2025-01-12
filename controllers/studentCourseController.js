@@ -7,7 +7,7 @@ const Lesson = require('../models/lessons');
 const Section = require('../models/sections');
 const Cart = require('../models/Cart/cart');
 const CartDetail = require('../models/Cart/cartDetail');
-
+require('dotenv').config();
 
 
 exports.joinCourseWithCoin = async (req, res) => {
@@ -500,12 +500,31 @@ exports.updateRechargeStatus = async (req, res) => {
 }
 
 
+
+
 exports.listPurchaseHistory = async (req, res) => {
     try {
         const {type,status }= req.body
         const user_id = req.user.user_id;
+        if(req.user.role === 1){
+            const purchase_history = await PurchaseHistory.find({ $or: [{status},{type}] }).sort({ purchaseDate: -1 }).populate({
+                path: 'course_id',
+                select: 'name',
+                model: 'Course',
+                localField: 'course_id',
+                foreignField: 'course_id'
+            }).populate({
+                path: 'user_id',
+                select: 'full_name',
+                model: 'User',
+                localField: 'user_id',
+                foreignField: 'user_id'
+            });
+            const user = await User.findOne({user_id:user_id})
+          return   res.status(200).json({ purchase_history,coin:user.coin });
+        }
 
-        const purchase_history = await PurchaseHistory.find({ $or: [{user_id,status},{user_id,type}, { type }, { status }] }).sort({ createdAt: -1 }).populate({
+        const purchase_history = await PurchaseHistory.find({user_id,type }).sort({ purchaseDate: -1 }).populate({
             path: 'course_id',
             select: 'name',
             model: 'Course',
@@ -519,7 +538,8 @@ exports.listPurchaseHistory = async (req, res) => {
             foreignField: 'user_id'
         });
         const user = await User.findOne({user_id:user_id})
-      return   res.status(200).json({ purchase_history,coin:user.coin });
+        return   res.status(200).json({ purchase_history,coin:user.coin });
+
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

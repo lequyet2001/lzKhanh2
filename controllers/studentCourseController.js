@@ -324,7 +324,9 @@ exports.deleteStudentCourse = async (req, res) => {
         if (!ress) {
             return res.status(400).json({ message: 'Student course not found' });
         }
-        const course = await Course.findOneAndUpdate({ course_id:ress.course_id,  $inc: { enroll: -1 } });
+        const course = await Course.findOne({ course_id:ress.course_id});
+        const enroll = Number(course.enroll) - 1;
+        await Course.updateOne({ course_id: ress.course_id }, { $set: { enroll: enroll } });
         if (!course) {
             return res.status(400).json({ message: 'Course not found' });
         }

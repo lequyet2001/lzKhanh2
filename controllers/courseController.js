@@ -7,6 +7,7 @@ const QuestionSet = require('../models/Quizzs/qestionSet');
 const Question = require('../models/Quizzs/question');
 const StudentCourse = require('../models/student_course');
 const Result = require('../models/Quizzs/result');
+const GroupChat = require('../models/Chat/group_chat');
 
 exports.getNameAndIdCourse = async (req, res) => {
     try {
@@ -99,7 +100,12 @@ exports.createCourse = async (req, res) => {
                 }
             })
         ]);
-
+        const GroupChat = new GroupChat({
+            course_id: id_course,
+            owner_id: user_id,
+            manager_id: user_id
+        });
+        await GroupChat.save();
         return res.status(200).json({ message: 'Course created successfully', course });
     } catch (error) {
         if (error.name === 'MongoError') {
@@ -354,12 +360,12 @@ exports.getAllCourses3 = async (req, res) => {
                 $sort: { createdAt: -1 }
             }
         ]
-        if (user_id) {
-            const student_courses = await StudentCourse.find({ user_id: user_id });
-            pipeline.unshift({ $match: { course_id: { $nin: student_courses.map(e => e.course_id) } } });
-            const courses = await Course.aggregate(pipeline);
-            return res.status(200).json(courses); // Trả về danh sách courses
-        }
+        // if (user_id) {
+        //     const student_courses = await StudentCourse.find({ user_id: user_id });
+        //     pipeline.unshift({ $match: { course_id: { $nin: student_courses.map(e => e.course_id) } } });
+        //     const courses = await Course.aggregate(pipeline);
+        //     return res.status(200).json(courses); // Trả về danh sách courses
+        // }
 
 
         const courses = await Course.aggregate(pipeline).sort({ createdAt: -1 });
@@ -504,7 +510,6 @@ exports.getAllCoursesAtHome = async (req, res) => {
                     localField: 'course_id',
                     foreignField: 'course_id'
                 }).sort({ createdAt: -1 }).limit(10);
-
             ReCommend = await Course.aggregate(pipeline).match({ category: { $in: StudentCourses.map(e => e.course_id.category) } }).sort({ createdAt: -1 }).limit(10);
         }
 

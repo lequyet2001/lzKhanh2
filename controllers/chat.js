@@ -8,6 +8,8 @@ const Question = require('../models/Quizzs/question');
 const StudentCourse = require('../models/student_course');
 const Result = require('../models/Quizzs/result');
 const Message = require('../models/Chat/message');
+const GroupChat = require("../models/Chat/group_chat");
+
 
 exports.studentSendMessage = async (req, res) => {
     try {
@@ -28,6 +30,20 @@ exports.studentSendMessage = async (req, res) => {
             message,
         });
         await newMessage.save();
+        const groupChat =  groupChat.findOne({course_id});
+        if(groupChat){
+            groupChat.list_message.push(newMessage._id);
+            await groupChat.save();
+        }
+        else{
+            const newGroupChat = new GroupChat({
+                course_id,
+                manager_id: course.user_id,
+                owner_id: course.user_id,
+                list_message: [newMessage._id]
+            });
+            await newGroupChat.save();
+        }
         res.status(201).json(newMessage);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -59,6 +75,85 @@ exports.replyMessage = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 }
+
+exports.chatInGroup = async (req, res) => {
+    try {
+        const {
+            course_id,
+            message,
+        } = req.body
+        const sender = req.user.user_id;
+        const course = await Course.findOne({ course_id });
+        if (!course) {
+            return res.status(404).json({ message: "Course not found" });
+        }
+        const receiver = course.user_id;
+        const newMessage = new Message({
+            sender,
+            course_id,
+            receiver,
+            message,
+        });
+        await newMessage.save();
+        const groupChat =  groupChat.findOne({course_id});
+        if(groupChat){
+            groupChat.list_message.push(newMessage._id);
+            await groupChat.save();
+        }
+        else{
+            const newGroupChat = new GroupChat({
+                course_id,
+                manager_id: course.user_id,
+                owner_id: course.user_id,
+                list_message: [newMessage._id]
+            });
+            await newGroupChat.save();
+        }
+        res.status(201).json(newMessage);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+}
+
+exports.studentGetMessageInGroupChat = async (req, res) => {
+    try {
+        const { course_id,limit } = req.body;
+        const user_id = req.user.user_id;
+
+        if (!course_id) {
+            return res.status(400).json('course_id is required');
+        }
+
+        const course = await Course.findOne({ course_id });
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+        const studentCourse = await StudentCourse.findOne({ course_id, user_id });
+        if (!studentCourse) {
+            return res.status(404).json({ message: `You are not currently in the classroom  ${course.name}` });
+        }
+        const groupChat = await GroupChat.findOne({ course_id });
+        if (!groupChat) {
+            return res.status(404).json({ message: 'Group chat not found' });
+        }
+        const messages = await Message.find({
+            _id: { $in: groupChat.list_message },
+        },{
+            sender: 1,
+            message: 1,
+            createdAt: 1,
+        }).sort({ createdAt: -1 }).limit(limit || 10);
+        
+        return res.status(200).json(messages);
+
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+
+
+
 
 
 exports.getMessages = async (req, res) => {

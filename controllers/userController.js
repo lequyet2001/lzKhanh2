@@ -99,7 +99,13 @@ exports.profile = async (req, res) => {
             avatar_url:1,
             code:1,
             room:1,
-        });
+        }).populate({
+            path: 'room',
+            select: { room_id: 1, name: 1 },
+            model: 'Room',
+            localField: 'room',
+            foreignField: '_id'
+        })
 
         const CoursesSignedUp = await StudentCourse.countDocuments({ user_id: user.user_id });
         const CoursesSuccessfullyCompleted = await StudentCourse.find({ user_id: user.user_id })

@@ -38,31 +38,9 @@ exports.updateRoom = async (req, res) => {
 exports.RoomManager = async (req, res) => {
     try {
         const { room_id } = req.body;
-        const ListStudent  =  await Result.aggregate()
-                 .lookup({
-                     from: 'users',
-                     localField: 'user_id',
-                     foreignField: 'user_id',
-                     as: 'user'
-                 })
-                 .unwind('$user')
-                 .group({
-                        _id: '$_id',
-                        user_id: { $first: '$user_id' },
-                        full_name: { $first: '$user.full_name' },
-                        point: { $sum: '$point' },
-                        created_at: { $first: '$created_at' },
-                        room: { $first: '$user'.room }
-                 })
-                 .project({
-                        _id: 0,
-                        user_id: 1,
-                        full_name: 1,
-                        room_id: 1,
-                        point: 1,
-                        created_at: 1,
-                        room:1
-                 })
+        const ListStudent  =  await User.find({room:room_id},{full_name:1, email:1, phone:1, address:1, room :1,_id:1})
+          
+
         return res.status(200).json({ ListStudent });
 
     } catch (error) {

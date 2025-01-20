@@ -1,22 +1,25 @@
+const mongoose = require('mongoose');
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose');
 require('dotenv').config();
 const app = express();
+
 const port = process.env.PORT || 3000;
 const uri = process.env.MONGODB_URI;
 
-const usersRouter = require('./routes/users');
-const defaultRouter = require('./routes/about');
-const checkToken = require('./middleware/checkToken');
 const authenticationRouter = require('./routes/authentication');
-const adminRouter = require('./routes/admin');
-const courseRouter = require('./routes/courses');
-const sectionRouter = require('./routes/sections');
-const categoryRouter = require('./routes/categories');
 const studentCourse = require('./routes/student_course');
-const chat = require('./routes/chat');
+const checkToken = require('./middleware/checkToken');
+const categoryRouter = require('./routes/categories');
+const sectionRouter = require('./routes/sections');
+const courseRouter = require('./routes/courses');
+const defaultRouter = require('./routes/about');
+const adminRouter = require('./routes/admin');
+const usersRouter = require('./routes/users');
+const roomRouter = require('./routes/room');
 const cartRouter = require('./routes/cart');
+const chat = require('./routes/chat');
+
 app.use(cors());
 app.use(express.json()); // Middleware to parse JSON bodies
 const path = require('path');
@@ -38,6 +41,7 @@ mongoose.connect(uri).then((e) => {
 
 app.use('/api/chat', chat);
 app.use('/api/cart', cartRouter);
+app.use('/api/room', roomRouter);
 app.use('/api/courses', courseRouter);
 app.use('/api/sections',sectionRouter );
 app.use('/api/auth', authenticationRouter);

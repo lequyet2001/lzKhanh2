@@ -84,7 +84,12 @@ const userSchema = new mongoose.Schema({
   code: {
     type: String,
     required: false,
+  },
+  room: {
+    type: String,
+    required: false,
   }
+
 });
 
 userSchema.pre('save', function(next) {

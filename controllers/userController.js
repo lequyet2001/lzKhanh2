@@ -1,6 +1,7 @@
 const User = require('../models/user');
 const Course = require('../models/course');
 const StudentCourse = require('../models/student_course');
+const Room = require('../models/room');
 
 exports.getAllUsers = async (req, res) => {
     try {
@@ -78,9 +79,6 @@ exports.detailUser = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 }
-
-
-
 exports.profile = async (req, res) => {
     try {
         const user = req.user;
@@ -99,7 +97,8 @@ exports.profile = async (req, res) => {
             email_contact:1,
             phone_contact:1,
             avatar_url:1,
-            code:1
+            code:1,
+            room:1,
         });
 
         const CoursesSignedUp = await StudentCourse.countDocuments({ user_id: user.user_id });
@@ -114,9 +113,7 @@ exports.profile = async (req, res) => {
                 }
             ).countDocuments({ process: "100" });
         
-        // delete profile.password;
 
-        console.log();
         res.status(200).json({ CoursesSignedUp, CoursesSuccessfullyCompleted ,profile});
 
 
@@ -127,8 +124,12 @@ exports.profile = async (req, res) => {
 }
 exports.editProfile = async (req, res) => {
     try {
-        const { full_name, email_contact, phone_contact, avatar_url, dob, gender } = req.body;
+        const { full_name, email_contact, phone_contact, avatar_url, dob, gender ,room} = req.body;
         const user = req.user;
+        const checkRoom = await Room.GetRoomById(room);
+        if (!checkRoom) {
+            return res.status(404).json({ message: 'Room not found' });
+        }
 
         const updatedUser = await User.findOneAndUpdate(
             { user_id: user.user_id },
@@ -138,11 +139,11 @@ exports.editProfile = async (req, res) => {
                 phone_contact: phone_contact,
                 avatar_url: avatar_url,
                 dob: dob,
-                gender: gender
+                gender: gender,
+                room:room
             },
             { new: true }
         );
-        console.log({ updatedUser });
         if (!updatedUser) {
             return res.status(404).json({ message: 'User not found' });
         }

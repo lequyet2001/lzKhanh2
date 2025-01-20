@@ -510,6 +510,7 @@ exports.getAllCoursesAtHome = async (req, res) => {
                     localField: 'course_id',
                     foreignField: 'course_id'
                 }).sort({ createdAt: -1 }).limit(10);
+            // ReCommend = await Course.aggregate(pipeline).match({ category: { $in: StudentCourses.filter(e => e.course_id && e.course_id.category != null).map(e => e.course_id.category) } }).sort({ createdAt: -1 }).limit(10);
             ReCommend = await Course.aggregate(pipeline).match({ category: { $in: StudentCourses.map(e => e.course_id.category) } }).sort({ createdAt: -1 }).limit(10);
         }
 

@@ -38,7 +38,7 @@ exports.updateRoom = async (req, res) => {
 exports.RoomManager = async (req, res) => {
     try {
         const { room_id } = req.body;
-        const ListStudent  =  await User.find({room:room_id},{full_name:1, email:1, phone:1, address:1, room :1,_id:1})
+        const ListStudent  =  await User.find({room:room_id},{full_name:1, email:1, phone:1, address:1, room :1,user_id:1})
           
 
         return res.status(200).json({ ListStudent });
@@ -58,6 +58,51 @@ exports.deleteRoom = async (req, res) => {
 
         const room = await Room.DeleteRoom(id);
         return res.status(200).json(room);
+    } catch (error) {
+        return res.status(500).json({ message: 'Server error', error: error.message });
+    }
+}
+
+
+
+exports.addStudentToRoom = async (req, res) => {
+    try {
+        const { room_id, email } = req.body;
+        const check = await User.GetUserByEmail(email);
+        if (!check) {
+            return res.status(400).json({ message: 'User not found' });
+        }
+        const user = await User.AddStudentToRoom(room_id,{ user_id: check.user_id});
+        return res.status(200).json(user);
+    } catch (error) {
+        return res.status(500).json({ message: 'Server error', error: error.message });
+    }
+}
+
+
+exports.addStudentsToRoom = async (req, res) => {
+    try {
+        const { room_id, students } = req.body;
+    
+        await Promise.all(students.map(async (student) => {
+            const check = await User.GetUserByEmail(student);
+            if (!check) {
+                return res.status(400).json({ message: 'User not found' });
+            }
+           await User.AddStudentToRoom(room_id, { user_id: check.user_id });
+        }));
+        return res.status(200).json({ message: 'Add students to room successfully' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Server error', error: error.message });
+    }
+}
+
+
+exports.deleteStudentFromRoom = async (req, res) => {
+    try {
+        const { user_id } = req.body;
+        const user = await User.deleteRoom( user_id );
+        return res.status(200).json(user);
     } catch (error) {
         return res.status(500).json({ message: 'Server error', error: error.message });
     }

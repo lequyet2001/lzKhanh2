@@ -7,18 +7,18 @@ const userSchema = new mongoose.Schema({
     unique: true,
     auto: true
   },
-    email_contact:{
-      type: String,
-      default: null,
-      required: false
-    },
-    gender:{
-      type: Number,
-      required: false,
-      default: 0,
-      enum: [0, 1, 2,3] // 0: chưa cập nhật, 1: nam, 2: nu, 3: khac
-    },
-  phone_contact:{
+  email_contact: {
+    type: String,
+    default: null,
+    required: false
+  },
+  gender: {
+    type: Number,
+    required: false,
+    default: 0,
+    enum: [0, 1, 2, 3] // 0: chưa cập nhật, 1: nam, 2: nu, 3: khac
+  },
+  phone_contact: {
     type: String,
     default: null,
     required: false
@@ -28,10 +28,10 @@ const userSchema = new mongoose.Schema({
     required: false,
     default: null
   },
-  coin:{
+  coin: {
     type: Number,
     required: false,
-    default:100
+    default: 100
   },
   dob: {
     type: Date,
@@ -51,7 +51,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: false,
     default: null,
-    
+
   },
   status: {
     type: Number,
@@ -92,10 +92,35 @@ const userSchema = new mongoose.Schema({
 
 });
 
-userSchema.pre('save', function(next) {
+userSchema.pre('save', function (next) {
   this.updated_at = Date.now();
   next();
 });
+
+userSchema.statics.GetUserByEmail = async function (email) {
+  return await this.findOne({ email });
+}
+userSchema.statics.AddStudentToRoom = async function (room_id, user_id) {
+  const a = user_id.user_id;
+  return await this.findOneAndUpdate(
+    { user_id:a },
+    { room: room_id },
+    { new: true }
+  );
+}
+
+userSchema.statics.deleteRoom = async function (user_id) {
+  const check = await this.findOne({ user_id: user_id });
+  const a = await this.findOneAndUpdate({
+    user_id: user_id
+  },{
+    room: null
+  },{
+    new: true
+  });
+  console.log(check);
+  return a
+}
 
 const User = mongoose.model('User', userSchema);
 

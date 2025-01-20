@@ -283,7 +283,8 @@ exports.listStudentCourse = async (req, res) => {
                         progress: { $first: '$progress' }, // Lấy progress đầu tiên trong nhóm
                         joinAt: { $first: '$joinAt' },
                         id: { $first: '$_id'},
-                        course: { $first: '$course' }
+                        course: { $first: '$course' },
+                        isAdd: { $first: '$isAdd' }
                     }
                 },
                 {
@@ -295,7 +296,8 @@ exports.listStudentCourse = async (req, res) => {
                         progress: 1,
                         joinAt: 1,
                         id: 1,
-                        'course.name':1
+                        'course.name':1,
+                        isAdd:1
                     }
                 }
             ];
@@ -303,11 +305,11 @@ exports.listStudentCourse = async (req, res) => {
 
         const listuser = await StudentCourse.aggregate(pipeline);
 
-        const data = listuser.filter((item) => {
-            console.log(`${item.teacher}`)
-            return item.teacher == user_id ;
-        });
-        return res.status(200).json(data);
+        // const data = listuser.filter((item) => {
+        //     console.log(`${item.teacher}`)
+        //     return item.teacher == user_id ;
+        // });
+        return res.status(200).json(listuser);
 
     } catch (error) {
         res.status(500).json({ message: error.message });

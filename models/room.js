@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { validate } = require('./user');
+const User = require('./user');
 
 const roomSchema = new mongoose.Schema({
     name: { // Room name
@@ -53,11 +54,6 @@ const roomSchema = new mongoose.Schema({
             }
         }
     },
-    course_id:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:'Course'
-    },
-
     createdAt: {
         type: Date,
         default: Date.now
@@ -95,6 +91,9 @@ roomSchema.statics.SearchRoom = async function (name) {
 roomSchema.statics.AddStudentToRoom = async function (room_id, student_id) {
     return await this.findByIdAndUpdate(room_id, { $push: { students: student_id } });
 }
+
+
+
 
 const Room = mongoose.model('Room', roomSchema);
 

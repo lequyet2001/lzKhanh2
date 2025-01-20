@@ -51,6 +51,10 @@ exports.RoomManager = async (req, res) => {
 exports.deleteRoom = async (req, res) => {
     try {
         const { id } = req.body;
+        const checkStudentInRoom = await User.findOne({ room: id});
+        if (checkStudentInRoom) {
+            return res.status(400).json({ message: 'Room has student, can not delete' });
+        }
 
         const room = await Room.DeleteRoom(id);
         return res.status(200).json(room);

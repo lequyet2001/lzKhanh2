@@ -167,12 +167,10 @@ exports.joinCourseWithTeacher = async (req, res) => {
         if (!course) {
             return res.status(400).json({ message: 'Course not found1   ' });
         }
-        const student_course_Exits = await StudentCourse.findOne({ course_id, user_id: user.user_id });
+        const student_course_Exits = await StudentCourse.findOne({ course_id, user_id: user.user_id,isAdd:1 });
         if (student_course_Exits) {
             return res.status(400).json({ message: 'Course already joined' });
         }
-
-
         const student_course = new StudentCourse({ course_id, user_id: user.user_id });
         await student_course.save();
 
@@ -187,61 +185,52 @@ exports.joinCourseWithTeacher = async (req, res) => {
     }
 }
 
+exports.joinCourseWithTeacher2 = async (req, res) => {
+    try {
+        const { course_id, listUser } = req.body;
+        
+        if(!course_id){
+            return res.status(400).json({ message: 'Course is required ' });
+        }
+        const course = await Course.findOne({ course_id });
+        if (!course) {
+            return res.status(400).json({ message: 'Course not found' });
+        }
+
+        await Promise.all(
+            listUser.map(async (email) => {
+                const user = await User.findOne({ email });
+                if (!user) {
+                    return res.status(400).json({ message: 'User not found' });
+                }
+                const student_course_Exits = await StudentCourse.findOne({ course_id, user_id: user.user_id  });
+                if (student_course_Exits) {
+                    return res.status(400).json({ message: `Người dùng  ${user.full_name}  đã có trong khóa học ` });
+                }
+                const student_course = new StudentCourse({ course_id, user_id: user.user_id,isAdd:1 });
+                await student_course.save();
+                const enroll = Number(course.enroll) + 1;
+                await Course.updateOne({ course_id: course_id }, { $set: { enroll: enroll } });
+                const purchase_history = new PurchaseHistory({ course_id, user_id: user.user_id, totalPrice: 0, status: 'completed', type: 'course' });
+                await purchase_history.save();
+            })
+        )
+      return    res.status(200).json({ message: 'Course joined successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+
+
 
 exports.listStudentCourse = async (req, res) => {
     try {
         const course_id = req.body.course_id;
-        const user_id = req.user.user_id;
 
         let pipeline = [];
 
         if (!course_id) {
-            pipeline = [
-                
-                {
-                    $lookup: {
-                        from: 'users', // Tên collection User trong MongoDB
-                        localField: 'user_id',
-                        foreignField: 'user_id',
-                        as: 'user'
-                    }
-                },
-                {
-                    $lookup: {
-                        from: 'courses', // Tên collection Course trong MongoDB
-                        localField: 'course_id',
-                        foreignField: 'course_id',
-                        as: 'course'
-                    }
-                },
-                {
-                    $unwind: '$user' // Giải nén mảng user
-                },
-                {
-                    $project: {
-                        'user.code': 1,
-                        'user.user_id': 1,
-                        'user.full_name': 1,
-                        progress: 1, // Lấy trường progress từ bảng student_course
-                        joinAt: '$createdAt' ,// Thêm thời gian gia nhập
-                        'course.name':1,
-                        teacher: '$course.user_id'
-                        
-                    }
-                },
-                {
-                    $project: {
-                        'course.name': 1,
-                        'user.code': 1,
-                        'user.user_id': 1,
-                        'user.full_name': 1,
-                        teacher: 1,
-                        progress: 1,
-                        joinAt: 1,
-                        id: '$_id'
-                    }
-                }
-            ];
+           return res.status(200).json([]);
         } else {
             pipeline = [
                 {
